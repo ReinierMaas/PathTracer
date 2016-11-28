@@ -1,0 +1,7 @@
+[package]
+name = "pathtracer"
+version = "0.1.0"
+authors = ["Arian van Putten <aeroboy94@gmail.com>"]
+
+[dependencies]
+sdl2 = "*"
