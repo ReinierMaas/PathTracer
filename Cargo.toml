@@ -5,3 +5,4 @@ authors = ["Arian van Putten <aeroboy94@gmail.com>"]
 
 [dependencies]
 sdl2 = "*"
+cgmath = "*"
