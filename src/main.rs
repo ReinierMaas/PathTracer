@@ -1,9 +1,15 @@
+
+extern crate cgmath;
 extern crate sdl2;
 
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+
+mod ray;
+mod scene;
+mod path_tracer;
 
 fn main() {
     const WIDTH: u32 = 800;
@@ -18,7 +24,7 @@ fn main() {
         .expect("Window");
 
 
-   let mut renderer = window.renderer().build().expect("Renderer"); 
+   let mut renderer = window.renderer().build().expect("Renderer");
 
    let mut texture = renderer.create_texture_streaming(
         PixelFormatEnum::RGB24, WIDTH, HEIGHT).expect("Texture");
