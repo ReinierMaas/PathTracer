@@ -56,20 +56,23 @@ impl Sphere {
 
 pub struct Scene {
     spheres: Vec<Sphere>,
+    skybox: Vec<f32>,
 }
 
 impl Scene {
     // creates a new default scene
-    fn new() -> Scene {
+    fn new() -> Result<Scene, io::Error> {
         let mut spheres = Vec::new();
+        let skybox = try!(Scene::read_skybox());
         let mut scene = Scene {
             spheres: spheres,
+            skybox: skybox,
         };
-        scene
+        Ok(scene)
     }
 
-    fn default_scene() -> Result<Scene, io::Error> {
-        let mut scene = Scene::new();
+    pub fn default_scene() -> Result<Scene, io::Error> {
+        let mut scene = try!(Scene::new());
 
         scene.add(Sphere::light(Point3::new(2.7,1.7,-0.5), 0.3));
 
@@ -156,21 +159,31 @@ impl Scene {
             },
         });
 
-        let mut f = try!(File::open("foo.txt"));
-        let k = f.bytes()
-                 .chunks_lazy(mem::size_of::<f32>())
-                 .into_iter()
-                 .map(|chunk| {
-                     unsafe {
-                         slice::from_raw_parts(&chunk, mem::size_of::<f32>())
-                     }
-                 });
 
+        let k = try!(Scene::read_skybox());
 
         Ok(scene)
     }
+
     fn add(&mut self, sphere: Sphere) {
         self.spheres.push(sphere)
+    }
+
+    fn read_skybox() -> Result<Vec<f32>, io::Error> {
+        let mut f = try!(File::open("./assets/sky_15.raw"));
+
+        let amount = 2500 * 1250 * 3 * mem::size_of::<f32>();
+
+        let mut bytes = Vec::with_capacity(amount);
+
+        try!(f.read_exact(&mut bytes));
+
+        let floats = bytes.chunks(4).map(|chunk| {
+            let k : [u8;4] = [chunk[0],chunk[1],chunk[2],chunk[3]];
+            let float : f32 = unsafe { mem::transmute(k) };
+            float
+        }).collect();
+        Ok(floats)
     }
 
 }

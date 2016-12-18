@@ -45,6 +45,11 @@ fn main() {
     renderer.copy(&texture, None, Some(Rect::new(0, 0, WIDTH, HEIGHT))).unwrap();
     renderer.present();
 
+
+    let s = scene::Scene::default_scene().unwrap();
+
+
+
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     'running: loop {
