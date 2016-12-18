@@ -49,7 +49,7 @@ impl Camera {
         camera
     }
 
-    pub fn handle_input(&mut self, key_presses : HashSet<Keycode>) -> bool  {
+    pub fn handle_input(&mut self, key_presses : &HashSet<Keycode>) -> bool  {
         self.target = self.origin + self.direction;
 
         let changed = if key_presses.contains(&Keycode::A) {

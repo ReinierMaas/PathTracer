@@ -89,7 +89,7 @@ fn main() {
                 },
                 _ => {}
             }
-            if camera.handle_input(key_presses) {
+            if camera.handle_input(&key_presses) {
                 print!("{:?}", camera);
                 io::stdout().flush().ok().unwrap();
             }
