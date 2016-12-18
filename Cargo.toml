@@ -7,4 +7,4 @@ authors = ["Arian van Putten <aeroboy94@gmail.com>"]
 sdl2 = "*"
 cgmath = "*"
 byteorder = "*"
-itertools = "*"
+rand = "*"

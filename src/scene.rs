@@ -1,7 +1,5 @@
-extern crate byteorder;
-extern crate itertools;
-
-use cgmath::{Vector3, Point3};
+extern crate cgmath;
+use self::cgmath::{Vector3, Point3};
 use std::fs::File;
 use std::io;
 use std::io::Cursor;
@@ -9,8 +7,6 @@ use std::io::prelude::*;
 use std::mem;
 use std::slice;
 
-use self::byteorder::{BigEndian, ReadBytesExt};
-use self::itertools::Itertools;
 
 pub enum Material {
     CheckerBoard,
