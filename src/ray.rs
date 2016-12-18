@@ -3,6 +3,7 @@ extern crate cgmath;
 use self::cgmath::{Vector3, Point3};
 use super::scene::Material;
 
+#[derive(Debug)]
 pub struct Ray {
     origin: Point3<f32>,
     direction: Vector3<f32>,

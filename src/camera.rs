@@ -9,6 +9,7 @@ use std::f32;
 use std::collections::HashSet;
 use self::sdl2::keyboard::Keycode;
 
+#[derive(Debug)]
 pub struct Camera {
     origin: Point3<f32>,
     target: Point3<f32>,

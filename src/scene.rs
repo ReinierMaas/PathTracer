@@ -8,6 +8,7 @@ use std::mem;
 use std::slice;
 
 
+#[derive(Debug)]
 pub enum Material {
     CheckerBoard,
     Realistic {
@@ -29,6 +30,7 @@ const LIGHT_COLOR: Vector3<f32> =
         z: 7.0 * LIGHT_SCALE,
     };
 
+#[derive(Debug)]
 struct Sphere {
     position: Point3<f32>,
     radius: f32,
@@ -50,6 +52,7 @@ impl Sphere {
     }
 }
 
+#[derive(Debug)]
 pub struct Scene {
     spheres: Vec<Sphere>,
     skybox: Vec<f32>,
