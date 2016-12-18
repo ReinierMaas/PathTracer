@@ -1,11 +1,12 @@
 extern crate cgmath;
-use self::cgmath::{Vector3, Point3};
+use self::cgmath::{Vector3, Point3, InnerSpace};
 use std::fs::File;
 use std::io;
 use std::io::Cursor;
 use std::io::prelude::*;
 use std::mem;
 use std::slice;
+use ray::Ray;
 
 
 #[derive(Debug)]
@@ -38,6 +39,34 @@ struct Sphere {
 }
 
 impl Sphere {
+
+    fn intersect(&self, ray : & mut Ray) {
+        let distance = self.position - ray.origin;
+        let tca = distance.dot(ray.direction);
+
+        if tca  < 0.0 {
+            return
+        }
+
+        let d2 = distance.dot(distance) - tca*tca;
+
+        if d2 > self.radius {
+            return
+        }
+
+        let thc = (self.radius - d2).sqrt();
+        let t0 = tca - thc;
+        let t1 = tca + thc;
+
+        if t0 > 0.0 {
+            if t0 > ray.distance {
+                return
+            }
+            ray.normal = (ray.origin + ray.direction - self.position).normalize();
+        }
+
+    }
+
     fn light(position: Point3<f32>, radius: f32) -> Sphere {
         Sphere {
             position: position,
@@ -68,6 +97,12 @@ impl Scene {
             skybox: skybox,
         };
         Ok(scene)
+    }
+
+    pub fn intersect(&self, ray : & mut Ray) {
+        for sphere in &self.spheres {
+            sphere.intersect(ray);
+        }
     }
 
     pub fn default_scene() -> Result<Scene, io::Error> {

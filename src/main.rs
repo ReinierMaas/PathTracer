@@ -59,9 +59,9 @@ fn main() {
         renderer.present();
 
 
-    //let s = Scene::default_scene().unwrap();
+    let scene = Scene::default_scene().unwrap();
 
-    let mut camera = Camera::new(WIDTH, HEIGHT);
+    let mut camera = Camera::new(WIDTH, HEIGHT, &scene);
 
 
     let mut event_pump = sdl_context.event_pump().unwrap();
@@ -90,8 +90,6 @@ fn main() {
                 _ => {}
             }
             if camera.handle_input(&key_presses) {
-                print!("{:?}", camera);
-                io::stdout().flush().ok().unwrap();
             }
         }
 

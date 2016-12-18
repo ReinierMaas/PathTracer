@@ -5,12 +5,12 @@ use super::scene::Material;
 
 #[derive(Debug)]
 pub struct Ray {
-    origin: Point3<f32>,
-    direction: Vector3<f32>,
-    N: Vector3<f32>,
-    distance: f32,
-    inside: bool,
-    material: Option<Material>, // the last material that it hit
+    pub origin: Point3<f32>,
+    pub direction: Vector3<f32>,
+    pub normal: Vector3<f32>,
+    pub distance: f32,
+    pub inside: bool,
+    pub material: Option<Material>, // the last material that it hit
 }
 
 impl Ray {
@@ -18,7 +18,7 @@ impl Ray {
         Ray {
             origin: origin,
             direction: direction,
-            N: Vector3::new(0.0,0.0,0.0),
+            normal: Vector3::new(0.0,0.0,0.0),
             distance: distance,
             inside: false,
             material: None,

@@ -8,9 +8,13 @@ use super::ray::Ray;
 use std::f32;
 use std::collections::HashSet;
 use self::sdl2::keyboard::Keycode;
+use std::io;
+use std::io::prelude::*;
+
+use scene::Scene;
 
 #[derive(Debug)]
-pub struct Camera {
+pub struct Camera <'a> {
     origin: Point3<f32>,
     target: Point3<f32>,
     focal_distance: f32,
@@ -26,11 +30,12 @@ pub struct Camera {
     width: u32,
     height: u32,
     lens_size: f32,
+    scene: & 'a Scene,
 }
 
-impl Camera {
+impl <'a> Camera <'a>  {
 
-    pub fn new(width: u32, height: u32) -> Camera {
+    pub fn new(width: u32, height: u32, scene: &Scene) -> Camera {
         let mut camera = Camera {
             width: width,
             height: height,
@@ -44,6 +49,7 @@ impl Camera {
             p3: Point3::new(0.0,0.0,0.0),
             right: Vector3::new(0.0,0.0,0.0),
             up: Vector3::new(0.0,0.0,0.0),
+            scene: scene
         };
         camera.update();
         camera
@@ -67,7 +73,7 @@ impl Camera {
             true
         } else { changed };
         let changed = if key_presses.contains(&Keycode::S) {
-            self.origin = self.origin + (0.1 * self.direction);
+            self.origin = self.origin + (-0.1 * self.direction);
             true
         } else { changed };
         let changed = if key_presses.contains(&Keycode::R) {
@@ -85,7 +91,7 @@ impl Camera {
             true
         } else { changed };
         let changed = if key_presses.contains(&Keycode::Down) {
-            self.target = self.target + (-0.1 * self.up);
+            self.target = self.target + (0.1 * self.up);
             true
         } else { changed };
         let changed = if key_presses.contains(&Keycode::Left) {
@@ -96,7 +102,12 @@ impl Camera {
             self.target = self.target + (0.1 * self.right);
             true
         } else { changed };
-        changed
+        if changed {
+            self.update();
+            true
+        } else {
+            false
+        }
 
     }
 
@@ -107,7 +118,8 @@ impl Camera {
         self.right = self.direction.cross(self.right);
         self.up = self.direction.cross(self.right);
 
-        let ray = Ray::new(self.origin, self.direction, f32::INFINITY);
+        let mut ray = Ray::new(self.origin, self.direction, f32::INFINITY);
+        self.scene.intersect(& mut ray);
     }
 
     // generates a nice Ray (TODO better integer type)
