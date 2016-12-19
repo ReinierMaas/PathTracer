@@ -14,7 +14,7 @@ use std::io::prelude::*;
 use scene::Scene;
 
 #[derive(Debug)]
-pub struct Camera <'a> {
+pub struct Camera {
     origin: Point3<f32>,
     target: Point3<f32>,
     focal_distance: f32,
@@ -30,12 +30,12 @@ pub struct Camera <'a> {
     width: u32,
     height: u32,
     lens_size: f32,
-    scene: & 'a Scene,
+    scene: Scene,
 }
 
-impl <'a> Camera <'a>  {
+impl Camera {
 
-    pub fn new(width: u32, height: u32, scene: &Scene) -> Camera {
+    pub fn new(width: u32, height: u32, scene: Scene) -> Camera {
         let mut camera = Camera {
             width: width,
             height: height,
@@ -122,8 +122,22 @@ impl <'a> Camera <'a>  {
         self.scene.intersect(& mut ray);
     }
 
-    // generates a nice Ray (TODO better integer type)
-    pub fn generate(self, x: i32, y: i32) -> Ray {
+
+    /// sample a ray by shooting it through the scene
+    pub fn sample(&self, ray : & mut Ray, depth: u32) -> Vector3<f32> {
+        self.scene.intersect(ray);
+        match ray.material {
+            None => {
+                self.scene.sample_skybox(ray.direction)
+            },
+            Some(ref material) => {
+                self.scene.sample_skybox(ray.direction)
+            }
+        }
+    }
+
+    /// generates a nice Ray (TODO better integer type)
+    pub fn generate(&self, x: u32, y: u32) -> Ray {
         // NOTE: we do not have to keep track of a
         // pool of random number generators, each
         // thread in rust has its own random

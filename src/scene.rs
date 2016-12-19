@@ -7,6 +7,7 @@ use std::io::prelude::*;
 use std::mem;
 use std::slice;
 use ray::Ray;
+use std::f32::consts::FRAC_1_PI;
 
 
 #[derive(Debug)]
@@ -201,6 +202,15 @@ impl Scene {
 
     fn add(&mut self, sphere: Sphere) {
         self.spheres.push(sphere)
+    }
+
+    pub fn sample_skybox(&self, direction: Vector3<f32>) -> Vector3<f32> {
+        let u = (2500.0 * 0.5 * (1.0 + direction.x.atan2(-direction.z) * FRAC_1_PI)) as usize;
+        let v = (1250.0 * (direction.y.acos() * FRAC_1_PI)) as usize;
+        let idx = u + v * 2500;
+        Vector3::new(self.skybox[idx*3+0],
+                     self.skybox[idx*3+1],
+                     self.skybox[idx*3+2])
     }
 
     fn read_skybox() -> Result<Vec<f32>, io::Error> {
