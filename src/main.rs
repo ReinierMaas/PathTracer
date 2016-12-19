@@ -37,11 +37,12 @@ struct Accumulator {
 impl Accumulator {
     pub fn new(width: u32, height: u32) -> Accumulator {
         let mut accum = Accumulator {
-           buf: Vec::with_capacity((width*height) as usize),
+           buf: vec![Vector3::new(0.0,0.0,0.0); (width*height) as usize],
            spp: 0,
            width: width,
            height: height,
         };
+        print!("{}", accum.buf.len());
         accum.clear();
         accum
     }
@@ -55,16 +56,14 @@ impl Accumulator {
 
 struct Game {
     accumulator: Accumulator,
-    texture: sdl2::render::Texture,
     camera: Camera,
 }
 
 impl Game {
-    fn new(width: u32, height: u32, texture: sdl2::render::Texture) -> Result<Game, io::Error> {
+    fn new(width: u32, height: u32) -> Result<Game, io::Error> {
         let scene = try!(Scene::default_scene());
         Ok(Game {
             accumulator: Accumulator::new(width, height),
-            texture: texture,
             camera: Camera::new(width, height, scene),
         })
     }
@@ -75,7 +74,6 @@ impl Game {
         }
 
         self.accumulator.spp += 1;
-        let scale = 1.0 / (self.accumulator.spp as f32);
 
         for y in 0..self.accumulator.height {
             for x in 0..self.accumulator.width {
@@ -86,13 +84,18 @@ impl Game {
         }
 
 
+
+
+    }
+    fn render(&self, texture : &mut sdl2::render::Texture) {
         let width = self.accumulator.width as usize;
         let height = self.accumulator.height as usize;
-        self.texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
+        let scale = 1.0 / (self.accumulator.spp as f32);
+        texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
             for y in 0..(width as usize) {
                 for x in 0..(height as usize) {
                     let offset: usize = y*pitch + x*3;
-                    let rgb = vec_to_rgb(scale*self.accumulator.buf[x+y*self.accumulator.width as usize]);
+                    let rgb = vec_to_rgb(scale*self.accumulator.buf[x+y*width as usize]);
 
                     buffer[offset + 0] = rgb.x;
                     buffer[offset + 1] = rgb.y;
@@ -100,10 +103,6 @@ impl Game {
                 }
             }
             }).expect("mutate texture");
-
-
-    }
-    fn render() {
     }
 }
 
@@ -139,7 +138,7 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
 
 
-    let mut game = Game::new(WIDTH, HEIGHT, texture).unwrap();
+    let mut game = Game::new(WIDTH, HEIGHT).unwrap();
 
     let mut key_presses = HashSet::new();
     'running: loop {
@@ -160,6 +159,7 @@ fn main() {
                 _ => {}
             }
             game.tick(&key_presses);
+            game.render(&mut texture);
         }
 
         //tick(renderer);

@@ -195,8 +195,6 @@ impl Scene {
         });
 
 
-        let k = try!(Scene::read_skybox());
-
         Ok(scene)
     }
 
@@ -218,9 +216,8 @@ impl Scene {
 
         let amount = 2500 * 1250 * 3 * mem::size_of::<f32>();
 
-        let mut bytes = Vec::with_capacity(amount);
 
-        try!(f.read_exact(&mut bytes));
+        let mut bytes: Vec<u8> = try!(f.bytes().take(amount).collect());
 
         let floats = bytes.chunks(4).map(|chunk| {
             let k : [u8;4] = [chunk[0],chunk[1],chunk[2],chunk[3]];
