@@ -1,4 +1,5 @@
 extern crate cgmath;
+extern crate itertools;
 use self::cgmath::{Vector3, Point3, InnerSpace};
 use std::fs::File;
 use std::io;
@@ -8,6 +9,8 @@ use std::mem;
 use std::slice;
 use ray::Ray;
 use std::f32::consts::FRAC_1_PI;
+extern crate memmap;
+use self::memmap::*;
 
 
 #[derive(Debug)]
@@ -107,6 +110,7 @@ impl Scene {
     }
 
     pub fn default_scene() -> Result<Scene, io::Error> {
+        print!("Setting up default_scene\n");
         let mut scene = try!(Scene::new());
 
         scene.add(Sphere::light(Point3::new(2.7,1.7,-0.5), 0.3));
@@ -212,18 +216,12 @@ impl Scene {
     }
 
     fn read_skybox() -> Result<Vec<f32>, io::Error> {
-        let mut f = try!(File::open("./assets/sky_15.raw"));
-
-        let amount = 2500 * 1250 * 3 * mem::size_of::<f32>();
-
-
-        let mut bytes: Vec<u8> = try!(f.bytes().take(amount).collect());
-
-        let floats = bytes.chunks(4).map(|chunk| {
-            let k : [u8;4] = [chunk[0],chunk[1],chunk[2],chunk[3]];
-            let float : f32 = unsafe { mem::transmute(k) };
-            float
-        }).collect();
+        let file = try!(Mmap::open_path("./assets/sky_15.raw", Protection::Read));
+        let bytes: &[u8] = unsafe { file.as_slice() };
+        let mut floats = vec![0.0 as f32; bytes.len() / 4];
+        for (mut chunk, mut float) in bytes.chunks(4).into_iter().zip(floats.iter_mut()) {
+            *float = unsafe { mem::transmute([chunk[0],chunk[1],chunk[2],chunk[3]]) };
+        }
         Ok(floats)
     }
 

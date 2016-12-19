@@ -36,14 +36,15 @@ struct Accumulator {
 
 impl Accumulator {
     pub fn new(width: u32, height: u32) -> Accumulator {
+        print!("Setting up accumulator...\n");
         let mut accum = Accumulator {
            buf: vec![Vector3::new(0.0,0.0,0.0); (width*height) as usize],
            spp: 0,
            width: width,
            height: height,
         };
-        print!("{}", accum.buf.len());
         accum.clear();
+        print!("Finished setting up accumulator...\n");
         accum
     }
     pub fn clear(&mut self) {
@@ -61,15 +62,19 @@ struct Game {
 
 impl Game {
     fn new(width: u32, height: u32) -> Result<Game, io::Error> {
+        print!("Setting up game...\n");
         let scene = try!(Scene::default_scene());
-        Ok(Game {
-            accumulator: Accumulator::new(width, height),
-            camera: Camera::new(width, height, scene),
-        })
+        let accum = Accumulator::new(width, height);
+        let camera = Camera::new(width, height, scene);
+        let game = Game { accumulator: accum, camera: camera };
+        print!("Finished setting up game...\n");
+        Ok(game)
     }
 
     fn tick(&mut self, key_presses : &HashSet<Keycode>) {
+        print!("tick!\n");
         if (self.camera.handle_input(&key_presses)) {
+            print!("clear\n");
             self.accumulator.clear();
         }
 
@@ -92,11 +97,10 @@ impl Game {
         let height = self.accumulator.height as usize;
         let scale = 1.0 / (self.accumulator.spp as f32);
         texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-            for y in 0..(width as usize) {
-                for x in 0..(height as usize) {
+            for y in 0..(height as usize) {
+                for x in 0..(width as usize) {
                     let offset: usize = y*pitch + x*3;
                     let rgb = vec_to_rgb(scale*self.accumulator.buf[x+y*width as usize]);
-
                     buffer[offset + 0] = rgb.x;
                     buffer[offset + 1] = rgb.y;
                     buffer[offset + 2] = rgb.z;
@@ -131,14 +135,11 @@ fn main() {
 
 
 
-        renderer.clear();
-        renderer.copy(&texture, None, Some(Rect::new(0, 0, WIDTH, HEIGHT))).unwrap();
-        renderer.present();
-
     let mut event_pump = sdl_context.event_pump().unwrap();
 
 
     let mut game = Game::new(WIDTH, HEIGHT).unwrap();
+
 
     let mut key_presses = HashSet::new();
     'running: loop {
@@ -158,11 +159,13 @@ fn main() {
                 },
                 _ => {}
             }
-            game.tick(&key_presses);
-            game.render(&mut texture);
+
         }
 
-        //tick(renderer);
+        game.tick(&key_presses);
+        game.render(&mut texture);
+        renderer.copy(&texture, None, Some(Rect::new(0, 0, WIDTH, HEIGHT))).unwrap();
+        renderer.present();
     }
 }
 

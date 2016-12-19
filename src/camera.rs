@@ -126,14 +126,16 @@ impl Camera {
     /// sample a ray by shooting it through the scene
     pub fn sample(&self, ray : & mut Ray, depth: u32) -> Vector3<f32> {
         self.scene.intersect(ray);
-        match ray.material {
+        //print!("{:?}\n", ray.direction);
+        let sample = match ray.material {
             None => {
                 self.scene.sample_skybox(ray.direction)
             },
             Some(ref material) => {
                 self.scene.sample_skybox(ray.direction)
             }
-        }
+        };
+        sample
     }
 
     /// generates a nice Ray (TODO better integer type)
@@ -155,6 +157,10 @@ impl Camera {
         let target = self.p1 + u * (self.p2 - self.p1) + v * (self.p3 - self.p1);
         let origin = self.origin + self.lens_size * (r2 * self.right + r3 * self.up);
         let direction = (target-origin).normalize();
+
+        // hmm all directions are the same. that seems to be a bug =)
+
+        print!("{:?}\n", direction);
         Ray::new(origin, direction, f32::INFINITY)
 
     }
