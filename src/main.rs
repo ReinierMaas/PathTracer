@@ -15,6 +15,8 @@ use std::collections::HashSet;
 use cgmath::{Vector3};
 
 mod ray;
+mod material;
+mod primitive;
 mod scene;
 mod path_tracer;
 mod camera;

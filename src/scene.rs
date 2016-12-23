@@ -1,5 +1,4 @@
 extern crate cgmath;
-extern crate itertools;
 use self::cgmath::{Vector3, Point3, InnerSpace};
 use std::fs::File;
 use std::io;
@@ -12,78 +11,9 @@ use std::f32::consts::FRAC_1_PI;
 extern crate memmap;
 use self::memmap::*;
 
-
-#[derive(Debug)]
-pub enum Material {
-    CheckerBoard,
-    Realistic {
-        refl: f32,
-        refr: f32,
-        emissive: bool,
-        diffuse: Vector3<f32>,
-    }
-}
-
-
-const LIGHT_SIZE: f32 = 0.3;
-const LIGHT_SCALE: f32 = 1.0;
-
-const LIGHT_COLOR: Vector3<f32> =
-    Vector3 {
-        x: 8.5 * LIGHT_SCALE,
-        y: 8.5 * LIGHT_SCALE,
-        z: 7.0 * LIGHT_SCALE,
-    };
-
-#[derive(Debug)]
-struct Sphere {
-    position: Point3<f32>,
-    radius: f32,
-    material: Material,
-}
-
-impl Sphere {
-
-    fn intersect(&self, ray : & mut Ray) {
-        let distance = self.position - ray.origin;
-        let tca = distance.dot(ray.direction);
-
-        if tca  < 0.0 {
-            return
-        }
-
-        let d2 = distance.dot(distance) - tca*tca;
-
-        if d2 > self.radius {
-            return
-        }
-
-        let thc = (self.radius - d2).sqrt();
-        let t0 = tca - thc;
-        let t1 = tca + thc;
-
-        if t0 > 0.0 {
-            if t0 > ray.distance {
-                return
-            }
-            ray.normal = (ray.origin + ray.direction - self.position).normalize();
-        }
-
-    }
-
-    fn light(position: Point3<f32>, radius: f32) -> Sphere {
-        Sphere {
-            position: position,
-            radius: radius,
-            material: Material::Realistic {
-                refl: 0.0,
-                refr: 0.0,
-                emissive: true,
-                diffuse: LIGHT_COLOR,
-            }
-        }
-    }
-}
+use primitive::Primitive;
+use primitive::sphere::Sphere;
+use material::Material;
 
 #[derive(Debug)]
 pub struct Scene {
