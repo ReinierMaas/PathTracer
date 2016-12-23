@@ -2,6 +2,7 @@ extern crate cgmath;
 use self::cgmath::{Vector3, Point3, InnerSpace};
 
 use super::Primitive;
+use super::aabb::AABB;
 
 use ray::Ray;
 use material::{Material, LIGHT_COLOR};
@@ -29,18 +30,18 @@ impl Sphere {
 }
 
 impl Primitive for Sphere {
-    fn intersect(&self, ray : & mut Ray) {
+    fn intersect(&self, ray : & mut Ray) -> bool {
         let distance = self.position - ray.origin;
         let tca = distance.dot(ray.direction);
 
         if tca  < 0.0 {
-            return
+            return false
         }
 
         let d2 = distance.dot(distance) - tca*tca;
 
         if d2 > self.radius {
-            return
+            return false;
         }
 
         let thc = (self.radius - d2).sqrt();
@@ -49,9 +50,19 @@ impl Primitive for Sphere {
 
         if t0 > 0.0 {
             if t0 > ray.distance {
-                return
+                return false;
             }
             ray.normal = (ray.origin + ray.direction - self.position).normalize();
+            return true;
         }
+        false
+    }
+    fn bounds(&self) -> AABB {
+        AABB {min : Point3 {x : self.position.x - self.radius,
+                            y : self.position.y - self.radius,
+                            z : self.position.z - self.radius },
+              max : Point3 {x : self.position.x + self.radius,
+                            y : self.position.y + self.radius,
+                            z : self.position.z + self.radius }}
     }
 }
