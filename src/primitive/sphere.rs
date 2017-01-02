@@ -1,5 +1,5 @@
 extern crate cgmath;
-use self::cgmath::{Vector3, Point3, InnerSpace};
+use self::cgmath::{Point3, InnerSpace};
 
 use std::f32;
 
