@@ -1,5 +1,5 @@
 extern crate cgmath;
-use self::cgmath::{Vector3, Point3, InnerSpace};
+use self::cgmath::{Vector3, Point3};
 
 use std::f32;
 
@@ -42,12 +42,12 @@ impl AABB {
 
 impl Primitive for AABB {
     fn intersect(&self, ray : & mut Ray) -> bool{
-        let rcpDir : Vector3<f32> = 1.0 / ray.direction;
+        let rcp_dir : Vector3<f32> = 1.0 / ray.direction;
         let min = self.min - ray.origin;
         let max = self.max - ray.origin;
 
-        let imin = Vector3{ x : min.x * rcpDir.x, y : min.y * rcpDir.y, z : min.z * rcpDir.z };
-        let imax = Vector3{ x : max.x * rcpDir.x, y : max.y * rcpDir.y, z : max.z * rcpDir.z };
+        let imin = Vector3{ x : min.x * rcp_dir.x, y : min.y * rcp_dir.y, z : min.z * rcp_dir.z };
+        let imax = Vector3{ x : max.x * rcp_dir.x, y : max.y * rcp_dir.y, z : max.z * rcp_dir.z };
 
         let tmin =      imin.x.min(imax.x)
                    .max(imin.y.min(imax.y))
