@@ -1,5 +1,5 @@
 extern crate cgmath;
-use self::cgmath::{Vector3, Point3, InnerSpace};
+use self::cgmath::{Vector3, Point3, InnerSpace, EuclideanSpace};
 use std::f32;
 
 use super::Primitive;
@@ -17,6 +17,25 @@ pub struct Triangle {
     pub normal1: Vector3<f32>,
     pub normal2: Vector3<f32>,
     pub material: Material,
+}
+
+impl Triangle {
+    pub fn light(p0 : Point3<f32>, p1 : Point3<f32>, p2 : Point3<f32>, n0 : Vector3<f32>, n1 : Vector3<f32>, n2 : Vector3<f32>) -> Triangle {
+        Triangle {
+            position0: p0,
+            position1: p1,
+            position2: p2,
+            normal0: n0,
+            normal1: n1,
+            normal2: n2,
+            material: Material::Realistic {
+                refl: 0.0,
+                refr: 0.0,
+                emissive: true,
+                diffuse: LIGHT_COLOR,
+            }
+        }
+    }
 }
 
 impl Primitive for Triangle {
@@ -48,14 +67,57 @@ impl Primitive for Triangle {
         // at this stage we can compute t to find out where
         // the intersection point is on the ray
         let t = f * edge2.dot(q);
+        if t < 0.0 {
+            return false; // the intersection is behind the ray's origin
+        }
         return true;
+    }
+    fn centre(&self) -> Point3<f32> {
+        (self.position0 + self.position1.to_vec() + self.position2.to_vec()) * (1.0 / 3.0)
     }
     fn bounds(&self) -> AABB {
         AABB {min : Point3 {x : self.position0.x.min(self.position1.x).min(self.position2.x),
                             y : self.position0.y.min(self.position1.y).min(self.position2.y),
                             z : self.position0.z.min(self.position1.z).min(self.position2.z) },
-              max : Point3 {x : self.position0.x.min(self.position1.x).min(self.position2.x),
-                            y : self.position0.y.min(self.position1.y).min(self.position2.y),
-                            z : self.position0.z.min(self.position1.z).min(self.position2.z) }}
+              max : Point3 {x : self.position0.x.max(self.position1.x).max(self.position2.x),
+                            y : self.position0.y.max(self.position1.y).max(self.position2.y),
+                            z : self.position0.z.max(self.position1.z).max(self.position2.z) }}
     }
+}
+
+#[test]
+fn intersections_triangle() {
+    let triangle = Triangle::light(Point3::new(1.0, 1.0, 2.0),Point3::new(1.0, -1.0, 2.0),Point3::new(-1.0, 0.0, 2.0),Vector3::new(0.0, 0.0, -1.0),Vector3::new(0.0, 0.0, -1.0),Vector3::new(0.0, 0.0, -1.0));
+
+    // Intersects forwards
+    let mut r1 = Ray::new(Point3::new(0.0,0.0,0.0), Vector3::new(0.0,0.0,1.0), f32::INFINITY);
+    assert!(triangle.intersect(&mut r1));
+
+    // Doesn't intersect backwards.
+    let mut r1 = Ray::new(Point3::new(0.0,0.0,0.0), Vector3::new(0.0,0.0,-1.0), f32::INFINITY);
+    assert!(!triangle.intersect(&mut r1));
+
+    // Barely intersects top.
+    let mut r1 = Ray::new(Point3::new(1.0,1.0,0.0), Vector3::new(0.0,0.0,1.0), f32::INFINITY);
+    assert!(triangle.intersect(&mut r1));
+
+    // Doesn't intersect on ray origin, is parrallel to triangle.
+    let mut r1 = Ray::new(Point3::new(0.0,0.0,2.0), Vector3::new(0.0,1.0,0.0), f32::INFINITY);
+    assert!(!triangle.intersect(&mut r1));
+
+    // Intersects on ray origin.
+    let mut r1 = Ray::new(Point3::new(0.0,0.0,2.0), Vector3::new(0.0,0.0,-1.0), f32::INFINITY);
+    assert!(triangle.intersect(&mut r1));
+
+    // Intersects on ray origin.
+    let mut r1 = Ray::new(Point3::new(0.0,0.0,2.0), Vector3::new(0.0,0.0,1.0), f32::INFINITY);
+    assert!(triangle.intersect(&mut r1));
+
+    // Doesn't intersect ray in front of triangle.
+    let mut r1 = Ray::new(Point3::new(0.0,0.0,2.5), Vector3::new(0.0,0.0,1.0), f32::INFINITY);
+    assert!(!triangle.intersect(&mut r1));
+
+    // Intersects triangle from other side.
+    let mut r1 = Ray::new(Point3::new(0.0,0.0,2.5), Vector3::new(0.0,0.0,-1.0), f32::INFINITY);
+    assert!(triangle.intersect(&mut r1));
 }
