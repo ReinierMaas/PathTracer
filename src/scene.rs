@@ -1,5 +1,4 @@
 extern crate cgmath;
-extern crate itertools;
 use self::cgmath::{Vector3, Point3, InnerSpace};
 use std::fs::File;
 use std::io;

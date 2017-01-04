@@ -30,12 +30,12 @@ use std::cell::Cell;
 struct Accumulator {
     spp: u32,
     buf: Vec<Vector3<f32>>,
-    width: u32,
-    height: u32,
+    width: usize,
+    height: usize,
 }
 
 impl Accumulator {
-    pub fn new(width: u32, height: u32) -> Accumulator {
+    pub fn new(width: usize, height: usize) -> Accumulator {
         print!("Setting up accumulator...\n");
         let mut accum = Accumulator {
            buf: vec![Vector3::new(0.0,0.0,0.0); (width*height) as usize],
@@ -61,7 +61,7 @@ struct Game {
 }
 
 impl Game {
-    fn new(width: u32, height: u32) -> Result<Game, io::Error> {
+    fn new(width: usize, height: usize) -> Result<Game, io::Error> {
         print!("Setting up game...\n");
         let scene = try!(Scene::default_scene());
         let accum = Accumulator::new(width, height);
@@ -83,7 +83,7 @@ impl Game {
         for y in 0..self.accumulator.height {
             for x in 0..self.accumulator.width {
                 let mut ray = self.camera.generate(x,y);
-                let idx = (x + y * self.accumulator.width) as usize;
+                let idx = x + y * self.accumulator.width;
                 self.accumulator.buf[idx] += self.camera.sample(&mut ray, 0);
             }
         }
@@ -93,14 +93,14 @@ impl Game {
 
     }
     fn render(&self, texture : &mut sdl2::render::Texture) {
-        let width = self.accumulator.width as usize;
-        let height = self.accumulator.height as usize;
+        let width = self.accumulator.width;
+        let height = self.accumulator.height;
         let scale = 1.0 / (self.accumulator.spp as f32);
         texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-            for y in 0..(height as usize) {
-                for x in 0..(width as usize) {
+            for y in 0..height {
+                for x in 0..width {
                     let offset: usize = y*pitch + x*3;
-                    let rgb = vec_to_rgb(scale*self.accumulator.buf[x+y*width as usize]);
+                    let rgb = vec_to_rgb(scale*self.accumulator.buf[x+y*width]);
                     buffer[offset + 0] = rgb.x;
                     buffer[offset + 1] = rgb.y;
                     buffer[offset + 2] = rgb.z;
@@ -116,12 +116,12 @@ fn vec_to_rgb(vec : Vector3<f32>) -> Vector3<u8> {
                  (255.0 as f32).min( 256.0 * 1.5 * vec.x.sqrt()) as u8)
 }
 fn main() {
-    const WIDTH: u32 = 800;
-    const HEIGHT: u32 = 600;
+    const WIDTH: usize = 800;
+    const HEIGHT: usize = 600;
     let sdl_context = sdl2::init().expect("SDL Context");
     let video_subsystem = sdl_context.video().expect("Video subsystem");
 
-    let window = video_subsystem.window("Pathtracer", WIDTH, HEIGHT)
+    let window = video_subsystem.window("Pathtracer", WIDTH as u32, HEIGHT as u32)
         .position_centered()
         .opengl()
         .build()
@@ -131,7 +131,7 @@ fn main() {
     let mut renderer = window.renderer().build().expect("Renderer");
 
     let mut texture = renderer.create_texture_streaming(
-        PixelFormatEnum::RGB24, WIDTH, HEIGHT).expect("Texture");
+        PixelFormatEnum::RGB24, WIDTH as u32, HEIGHT as u32).expect("Texture");
 
 
 
@@ -164,7 +164,7 @@ fn main() {
 
         game.tick(&key_presses);
         game.render(&mut texture);
-        renderer.copy(&texture, None, Some(Rect::new(0, 0, WIDTH, HEIGHT))).unwrap();
+        renderer.copy(&texture, None, Some(Rect::new(0, 0, WIDTH as u32, HEIGHT as u32))).unwrap();
         renderer.present();
     }
 }
