@@ -10,6 +10,7 @@ use std::collections::HashSet;
 use self::sdl2::keyboard::Keycode;
 use std::io;
 use std::io::prelude::*;
+use self::rand::Closed01;
 
 use scene::Scene;
 
@@ -27,14 +28,14 @@ pub struct Camera {
 
     up: Vector3<f32>,
     right: Vector3<f32>,
-    width: u32,
-    height: u32,
+    width: usize,
+    height: usize,
     lens_size: f32,
     scene: Scene,
 }
 
 impl Camera {
-    pub fn new(width: u32, height: u32, scene: Scene) -> Camera {
+    pub fn new(width: usize, height: usize, scene: Scene) -> Camera {
         let mut camera = Camera {
             width: width,
             height: height,
@@ -111,7 +112,6 @@ impl Camera {
     }
 
     fn update(&mut self) {
-        // construct a look-at matrix
         self.direction = (self.target-self.origin).normalize();
         self.up = Vector3::new(0.0,1.0,0.0);
         self.right = self.direction.cross(self.right);
@@ -119,8 +119,18 @@ impl Camera {
 
         let mut ray = Ray::new(self.origin, self.direction, f32::INFINITY);
         self.scene.intersect(& mut ray);
-    }
 
+        let aspect_ratio = (self.width as f32) / (self.height as f32);
+
+        self.focal_distance = f32::min(20.0, ray.distance);
+
+        let c = self.origin + self.focal_distance * self.direction;
+
+        self.p1 = c  + (-0.5 * self.focal_distance * aspect_ratio * self.right) + (0.5 * self.focal_distance * self.up);
+        self.p2 = c + (0.5 * self.focal_distance * aspect_ratio * self.right) + (0.5 * self.focal_distance * self.up);
+        self.p3 = c + (-0.5 * self.focal_distance * aspect_ratio * self.right) + (-0.5 * self.focal_distance * self.up);
+
+    }
 
     /// sample a ray by shooting it through the scene
     pub fn sample(&self, ray : & mut Ray, depth: u32) -> Vector3<f32> {
@@ -138,16 +148,16 @@ impl Camera {
     }
 
     /// generates a nice Ray (TODO better integer type)
-    pub fn generate(&self, x: u32, y: u32) -> Ray {
+    pub fn generate(&self, x: usize, y: usize) -> Ray {
         // NOTE: we do not have to keep track of a
         // pool of random number generators, each
         // thread in rust has its own random
         // number generator by default :)
-        let r0:f32 = rand::random();
-        let r1:f32 = rand::random();
-        let r2:f32 = rand::random();
+        let Closed01(r0) = rand::random::<Closed01<f32>>();
+        let Closed01(r1) = rand::random::<Closed01<f32>>();
+        let Closed01(r2) = rand::random::<Closed01<f32>>();
         let r2 = r2 - 0.5;
-        let r3:f32 = rand::random();
+        let Closed01(r3) = rand::random::<Closed01<f32>>();
         let r3 = r3 - 0.5;
 
         // calculate sub-pixel ray target position on screen plane
@@ -159,7 +169,6 @@ impl Camera {
 
         // hmm all directions are the same. that seems to be a bug =)
 
-        print!("{:?}\n", direction);
         Ray::new(origin, direction, f32::INFINITY)
 
     }

@@ -2,7 +2,6 @@ extern crate cgmath;
 use self::cgmath::{Vector3, Point3};
 
 use std::f32;
-use std::ops::Index;
 
 use super::Primitive;
 
