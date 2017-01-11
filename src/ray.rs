@@ -12,20 +12,18 @@ pub struct Intersection<'a> {
 }
 
 #[derive(Debug)]
-pub struct Ray<'a> {
+pub struct Ray {
     pub origin: Point3<f32>,
     pub direction: Vector3<f32>,
     pub distance: f32,
-    pub intersection: Option<Intersection<'a>>, // the closest intersection
 }
 
-impl <'a> Ray<'a> {
-    pub fn new(origin: Point3<f32>, direction: Vector3<f32>, distance: f32) -> Ray<'a> {
+impl Ray {
+    pub fn new(origin: Point3<f32>, direction: Vector3<f32>, distance: f32) -> Ray {
         Ray {
             origin: origin,
             direction: direction,
             distance: distance,
-            intersection: None,
         }
     }
 }

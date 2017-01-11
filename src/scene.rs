@@ -6,7 +6,7 @@ use std::io::Cursor;
 use std::io::prelude::*;
 use std::mem;
 use std::slice;
-use ray::Ray;
+use ray::{Ray,Intersection};
 use bvh::BVH;
 use std::f32::consts::FRAC_1_PI;
 extern crate memmap;
@@ -36,10 +36,15 @@ impl Scene {
         Ok(scene)
     }
 
-    pub fn intersect(&self, ray : & mut Ray) {
+    pub fn intersect(&self, ray : & mut Ray) -> Option<Intersection> {
+        let mut intersection = None;
         for sphere in &self.spheres {
-            sphere.intersect(ray);
+            match sphere.intersect(ray) {
+                None => (),
+                Some(x) => intersection = Some(x),
+            }
         }
+        intersection
     }
 
     pub fn default_scene() -> Result<Scene, io::Error> {

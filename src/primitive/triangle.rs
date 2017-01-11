@@ -40,14 +40,14 @@ impl Triangle {
 }
 
 impl Primitive for Triangle {
-    fn intersect<'a>(&'a self, ray: &'a mut Ray<'a>) -> bool {
+    fn intersect(&self, ray: &mut Ray) -> Option<Intersection> {
         let edge1 = self.position1 - self.position0;
         let edge2 = self.position2 - self.position0;
         let h = ray.direction.cross(edge2);
         let a = edge1.dot(h);
 
         if a > -f32::EPSILON && a < f32::EPSILON {
-            return false;
+            return None
         }
 
         let f = 1.0 / a;
@@ -55,28 +55,28 @@ impl Primitive for Triangle {
         let u = f * s.dot(h);
 
         if u < 0.0 || u > 1.0 {
-            return false;
+            return None
         }
 
         let q = s.cross(edge1);
         let v = f * ray.direction.dot(q);
 
         if v < 0.0 || u + v > 1.0 {
-            return false;
+            return None
         }
 
         // at this stage we can compute t to find out where
         // the intersection point is on the ray
         let t = f * edge2.dot(q);
         if t < 0.0 {
-            return false; // the intersection is behind the ray's origin
+            return None // the intersection is behind the ray's origin
         }
-        ray.intersection = Some(Intersection{
+        ray.distance = t;
+        Some(Intersection{
             normal: ((1. - u - v) * self.normal0 + u * self.normal1 + v * self.normal2).normalize(),
             inside: true,
             material: &self.material,
-        });
-        return true;
+        })
     }
     fn centre(&self) -> Point3<f32> {
         (self.position0 + self.position1.to_vec() + self.position2.to_vec()) * (1.0 / 3.0)

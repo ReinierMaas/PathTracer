@@ -118,7 +118,7 @@ impl Camera {
         self.up = self.direction.cross(self.right);
 
         let mut ray = Ray::new(self.origin, self.direction, 1e34);
-        self.scene.intersect(& mut ray);
+        let _intersection = self.scene.intersect(& mut ray);
 
         let aspect_ratio = (self.width as f32) / (self.height as f32);
 
@@ -134,9 +134,8 @@ impl Camera {
 
     /// sample a ray by shooting it through the scene
     pub fn sample(&self, ray : & mut Ray, depth: u32) -> Vector3<f32> {
-        self.scene.intersect(ray);
-        //print!("{:?}\n", ray.direction);
-        let sample = match ray.intersection {
+        let intersection = self.scene.intersect(ray);
+        let sample = match intersection {
             None => {
                 self.scene.sample_skybox(ray.direction)
             },

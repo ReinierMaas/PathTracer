@@ -41,10 +41,8 @@ impl AABB {
     pub fn size(&self) -> Vector3<f32> {
         self.max - self.min
     }
-}
 
-impl Primitive for AABB {
-    fn intersect(&self, ray : & mut Ray) -> bool{
+    pub fn intersect(&self, ray : & mut Ray) -> bool{
         let rcp_dir : Vector3<f32> = 1.0 / ray.direction;
         let min = self.min - ray.origin;
         let max = self.max - ray.origin;

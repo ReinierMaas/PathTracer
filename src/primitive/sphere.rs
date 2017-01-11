@@ -33,7 +33,8 @@ impl Sphere {
 }
 
 impl Primitive for Sphere {
-    fn intersect<'a>(&'a self, ray: &mut Ray<'a>) -> bool {
+
+    fn intersect(&self, ray: & mut Ray) -> Option<Intersection> {
         let distance = self.position - ray.origin;
         let tca = distance.dot(ray.direction);
 
@@ -45,7 +46,7 @@ impl Primitive for Sphere {
         let d2 = distance.dot(distance) - tca*tca;
 
         if d2 > self.radius * self.radius {
-            return false;
+            return None
         }
 
         let thc = (self.radius * self.radius - d2).sqrt();
@@ -54,28 +55,29 @@ impl Primitive for Sphere {
 
         if t0 >= 0.0 {
             if t0 >= ray.distance {
-                return false;
+                None
+            } else {
+                ray.distance = t0;
+                Some(Intersection{
+                    normal: (ray.origin + ray.direction * t0 - self.position).normalize(),
+                    inside:  false,
+                    material: &self.material,
+                })
             }
-            ray.distance = t0;
-            ray.intersection = Some(Intersection{
-                normal: (ray.origin + ray.direction * t0 - self.position).normalize(),
-                inside:  false,
-                material: &self.material,
-            });
-            return true;
         } else if t1 >= 0.0 {
             if t1 >= ray.distance {
-                return false;
+                None
+            } else {
+                ray.distance = t1;
+                Some(Intersection{
+                    normal: (ray.origin + ray.direction * t1 - self.position).normalize(),
+                    inside: true,
+                    material: &self.material,
+                })
             }
-            ray.distance = t1;
-            ray.intersection = Some(Intersection{
-                normal: (ray.origin + ray.direction * t1 - self.position).normalize(),
-                inside: true,
-                material: &self.material,
-            });
-            return true;
+        } else {
+            None
         }
-        false
     }
     fn centre(&self) -> Point3<f32> {
         self.position
