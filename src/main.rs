@@ -1,13 +1,16 @@
 
 extern crate cgmath;
 extern crate sdl2;
+extern crate num_cpus;
+extern crate spmc;
 
 use std::io;
-
+use std::sync::mpsc;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+use std::thread;
 
 use std::collections::HashSet;
 
@@ -51,18 +54,70 @@ impl Accumulator {
     }
 }
 
-struct Game {
+struct Game<'a> {
     accumulator: Accumulator,
     camera: Camera,
+    workers: Vec<Option<thread::JoinHandle<()>>>,
+    tx: spmc::Sender<WorkerMsg<'a>>,
+    rx: mpsc::Receiver<GameMsg<'a>>,
 }
 
-impl Game {
-    fn new(width: usize, height: usize) -> Result<Game, io::Error> {
+impl <'a> Drop for Game<'a> {
+    fn drop (&mut self) {
+        for handle in &mut self.workers {
+            handle.take().unwrap().join().unwrap();
+        }
+    }
+}
+
+enum GameMsg<'a> {
+    Traced(&'a mut [f32])
+}
+
+enum WorkerMsg<'a> {
+    Quit,
+    Trace(&'a mut [f32]),
+}
+
+impl <'a> Game<'a> {
+    fn worker(tx : mpsc::Sender<GameMsg>, rx : spmc::Receiver<WorkerMsg>) {
+        loop {
+            match rx.recv().unwrap() {
+                WorkerMsg::Quit => break,
+                WorkerMsg::Trace(accum) => {
+                }
+            }
+        }
+    }
+
+    fn new(width: usize, height: usize, num_workers: usize) -> Result<Game<'a>, io::Error> {
         print!("Setting up game...\n");
         let scene = try!(Scene::default_scene());
-        let accum = Accumulator::new(width, height);
+        let accumulator = Accumulator::new(width, height);
         let camera = Camera::new(width, height, scene);
-        let game = Game { accumulator: accum, camera: camera };
+
+        let mut workers = Vec::new();
+
+        let (game_tx, worker_rx) = spmc::channel();
+
+        let (worker_tx, game_rx) = mpsc::channel();
+
+        for c in 0..num_workers {
+            let rx = worker_rx.clone();
+            let tx = worker_tx.clone();
+            workers.push(Some(thread::spawn(move || {
+                loop {
+                }
+                Game::worker(tx, rx)
+            })));
+        }
+        let game = Game {
+            accumulator: accumulator,
+            camera: camera,
+            workers: workers,
+            rx: game_rx,
+            tx: game_tx,
+        };
         print!("Finished setting up game...\n");
         Ok(game)
     }
@@ -135,7 +190,9 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
 
 
-    let mut game = Game::new(WIDTH, HEIGHT).unwrap();
+    let mut game = Game::new(WIDTH, HEIGHT, 0).unwrap();
+
+
 
 
     let mut key_presses = HashSet::new();
