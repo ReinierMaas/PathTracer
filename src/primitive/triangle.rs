@@ -1,6 +1,7 @@
 extern crate cgmath;
 use self::cgmath::{Vector3, Point3, InnerSpace, EuclideanSpace};
 use std::f32;
+use std::sync::Arc;
 
 use super::Primitive;
 use super::aabb::AABB;
@@ -16,7 +17,7 @@ pub struct Triangle {
     pub normal0: Vector3<f32>,
     pub normal1: Vector3<f32>,
     pub normal2: Vector3<f32>,
-    pub material: Material,
+    pub material: Arc<Material>,
 }
 
 impl Triangle {
@@ -28,12 +29,12 @@ impl Triangle {
             normal0: n0,
             normal1: n1,
             normal2: n2,
-            material: Material::Realistic {
+            material: Arc::new(Material::Realistic {
                 refl: 0.0,
                 refr: 0.0,
                 emissive: true,
                 diffuse: LIGHT_COLOR,
-            }
+            })
         }
     }
 }
@@ -84,8 +85,8 @@ impl Primitive for Triangle {
                             z : self.position0.z.max(self.position1.z).max(self.position2.z) }}
     }
     fn is_light(&self) -> bool {
-        match self.material {
-            Material::Realistic{ refl: refl, refr: refr, emissive: emissive, diffuse: diffuse } => emissive,
+        match self.material.as_ref() {
+            &Material::Realistic{ refl: refl, refr: refr, emissive: emissive, diffuse: diffuse } => emissive,
             _ => false,
         }
     }

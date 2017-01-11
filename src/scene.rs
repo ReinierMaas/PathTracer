@@ -6,6 +6,7 @@ use std::io::Cursor;
 use std::io::prelude::*;
 use std::mem;
 use std::slice;
+use std::sync::Arc;
 use ray::Ray;
 use bvh::BVH;
 use std::f32::consts::FRAC_1_PI;
@@ -51,18 +52,18 @@ impl Scene {
         let bottomPlane = Sphere {
             position: Point3::new(0.0,-4999.0,0.0),
             radius: 4998.5,
-            material: Material::CheckerBoard,
+            material: Arc::new(Material::CheckerBoard),
         };
 
         let backPlane = Sphere {
             position: Point3::new(0.0,0.0,-5000.0),
             radius: 4998.5,
-            material: Material::Realistic {
+            material: Arc::new(Material::Realistic {
                 diffuse: Vector3::new(1.0,1.0,1.0),
                 refl: 0.0,
                 refr: 0.0,
                 emissive: false,
-            },
+            }),
         };
 
         scene.add(bottomPlane);
@@ -70,65 +71,65 @@ impl Scene {
         scene.add(Sphere {
             position: Point3::new(-0.8, 0.0, -2.0),
             radius: 0.3 * 0.3,
-            material: Material::Realistic {
+            material: Arc::new(Material::Realistic {
                 diffuse: Vector3::new(1.0,0.2,0.2),
                 refl: 0.8,
                 refr: 0.0,
                 emissive: false,
-            },
+            }),
         });
 
         scene.add(Sphere {
             position: Point3::new(0.0,0.0,-2.0),
             radius: 0.3 * 0.3,
-            material: Material::Realistic {
+            material: Arc::new(Material::Realistic {
                 diffuse: Vector3::new(0.9,1.0,0.9),
                 refl: 0.0,
                 refr: 1.0,
                 emissive: false,
-            },
+            }),
         });
 
         scene.add(Sphere {
             position: Point3::new(0.8,0.0,-2.0),
             radius: 0.3 * 0.3,
-            material: Material::Realistic {
+            material: Arc::new(Material::Realistic {
                 diffuse: Vector3::new(0.2, 0.2, 1.0),
                 refl: 0.8,
                 refr: 0.0,
                 emissive: false,
-            },
+            }),
         });
 
         scene.add(Sphere {
             position: Point3::new(-0.8,-0.8,-2.0),
             radius: 0.5 * 0.5,
-            material: Material::Realistic {
+            material: Arc::new(Material::Realistic {
                 diffuse: Vector3::new(1.0, 1.0, 1.0),
                 refl: 0.0,
                 refr: 0.0,
                 emissive: false,
-            },
+            }),
         });
         scene.add(Sphere {
             position: Point3::new(-0.0,-0.8,-2.0),
             radius: 0.5 * 0.5,
-            material: Material::Realistic {
+            material: Arc::new(Material::Realistic {
                 diffuse: Vector3::new(1.0, 1.0, 1.0),
                 refl: 0.0,
                 refr: 0.0,
                 emissive: false,
-            },
+            }),
         });
         scene.add(Sphere {
             position: Point3::new(0.8,-0.8,-2.0),
             radius: 0.5 * 0.5,
-            material: Material::Realistic {
+            material: Arc::new(Material::Realistic {
                 diffuse: Vector3::new(1.0, 1.0, 1.0),
                 refl: 0.0,
                 refr: 0.0,
                 emissive: false,
-            },
+            }),
         });
 
 

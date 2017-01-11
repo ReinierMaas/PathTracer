@@ -2,6 +2,7 @@ extern crate cgmath;
 use self::cgmath::{Point3, InnerSpace};
 
 use std::f32;
+use std::sync::Arc;
 
 use super::Primitive;
 use super::aabb::AABB;
@@ -13,7 +14,7 @@ use material::{Material, LIGHT_COLOR};
 pub struct Sphere {
     pub position: Point3<f32>,
     pub radius: f32,
-    pub material: Material,
+    pub material: Arc<Material>,
 }
 
 impl Sphere {
@@ -21,12 +22,12 @@ impl Sphere {
         Sphere {
             position: position,
             radius: radius,
-            material: Material::Realistic {
+            material: Arc::new(Material::Realistic {
                 refl: 0.0,
                 refr: 0.0,
                 emissive: true,
                 diffuse: LIGHT_COLOR,
-            }
+            })
         }
     }
 }
@@ -56,22 +57,22 @@ impl Primitive for Sphere {
                 return false;
             }
             ray.distance = t0;
-            //ray.intersection = Some(Intersection{
-            //    normal: (ray.origin + ray.direction * t0 - self.position).normalize(),
-            //    inside:  false,
-            //    material: &self.material,
-            //});
+            ray.intersection = Some(Intersection{
+                normal: (ray.origin + ray.direction * t0 - self.position).normalize(),
+                inside:  false,
+                material: self.material.clone(),
+            });
             return true;
         } else if t1 >= 0.0 {
             if t1 >= ray.distance {
                 return false;
             }
             ray.distance = t1;
-            //ray.intersection = Some(Intersection{
-            //    normal: (ray.origin + ray.direction * t1 - self.position).normalize(),
-            //    inside: true,
-            //    material: &self.material,
-            //});
+            ray.intersection = Some(Intersection{
+                normal: (ray.origin + ray.direction * t1 - self.position).normalize(),
+                inside: true,
+                material: self.material.clone(),
+            });
             return true;
         }
         false
@@ -88,8 +89,8 @@ impl Primitive for Sphere {
                             z : self.position.z + self.radius }}
     }
     fn is_light(&self) -> bool {
-        match self.material {
-            Material::Realistic{ refl: refl, refr: refr, emissive: emissive, diffuse: diffuse } => emissive,
+        match self.material.as_ref() {
+            &Material::Realistic{ refl: refl, refr: refr, emissive: emissive, diffuse: diffuse } => emissive,
             _ => false,
         }
     }
