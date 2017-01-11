@@ -10,7 +10,7 @@ use self::memmap::*;
 
 use primitive::Primitive;
 use primitive::sphere::Sphere;
-use material::Material;
+use material::{Material, Emissive};
 
 #[derive(Debug)]
 pub struct Scene {
@@ -59,76 +59,83 @@ impl Scene {
             position: Point3::new(0.0,0.0,-5000.0),
             radius: 4998.5,
             material: Material::Realistic {
+                emissive: Emissive::NonEmissive {
+                    refl: 0.0,
+                    refr: 0.0,
+                },
                 diffuse: Vector3::new(1.0,1.0,1.0),
-                refl: 0.0,
-                refr: 0.0,
-                emissive: false,
             },
         };
 
         scene.add(bottom_plane);
-        scene.add(back_plane);
+        //scene.add(back_plane);
         scene.add(Sphere {
             position: Point3::new(-0.8, 0.0, -2.0),
-            radius: 0.3 * 0.3,
+            radius: 0.3,
             material: Material::Realistic {
                 diffuse: Vector3::new(1.0,0.2,0.2),
-                refl: 0.8,
-                refr: 0.0,
-                emissive: false,
+                emissive: Emissive::NonEmissive {
+                    refl: 0.8,
+                    refr: 0.0,
+                },
             },
         });
 
         scene.add(Sphere {
             position: Point3::new(0.0,0.0,-2.0),
-            radius: 0.3 * 0.3,
+            radius: 0.3,
             material: Material::Realistic {
                 diffuse: Vector3::new(0.9,1.0,0.9),
-                refl: 0.0,
-                refr: 1.0,
-                emissive: false,
+                emissive: Emissive::NonEmissive {
+                    refl: 0.0,
+                    refr: 1.0,
+                },
             },
         });
 
         scene.add(Sphere {
             position: Point3::new(0.8,0.0,-2.0),
-            radius: 0.3 * 0.3,
+            radius: 0.3,
             material: Material::Realistic {
                 diffuse: Vector3::new(0.2, 0.2, 1.0),
-                refl: 0.8,
-                refr: 0.0,
-                emissive: false,
+                emissive: Emissive::NonEmissive {
+                    refl: 0.8,
+                    refr: 0.0,
+                },
             },
         });
 
         scene.add(Sphere {
             position: Point3::new(-0.8,-0.8,-2.0),
-            radius: 0.5 * 0.5,
+            radius: 0.5,
             material: Material::Realistic {
                 diffuse: Vector3::new(1.0, 1.0, 1.0),
-                refl: 0.0,
-                refr: 0.0,
-                emissive: false,
+                emissive: Emissive::NonEmissive {
+                    refl: 0.0,
+                    refr: 0.0,
+                },
             },
         });
         scene.add(Sphere {
             position: Point3::new(-0.0,-0.8,-2.0),
-            radius: 0.5 * 0.5,
+            radius: 0.5,
             material: Material::Realistic {
                 diffuse: Vector3::new(1.0, 1.0, 1.0),
-                refl: 0.0,
-                refr: 0.0,
-                emissive: false,
+                emissive: Emissive::NonEmissive {
+                    refl: 0.0,
+                    refr: 0.0,
+                },
             },
         });
         scene.add(Sphere {
             position: Point3::new(0.8,-0.8,-2.0),
-            radius: 0.5 * 0.5,
+            radius: 0.5,
             material: Material::Realistic {
                 diffuse: Vector3::new(1.0, 1.0, 1.0),
-                refl: 0.0,
-                refr: 0.0,
-                emissive: false,
+                emissive: Emissive::NonEmissive {
+                    refl: 0.0,
+                    refr: 0.0,
+                },
             },
         });
 

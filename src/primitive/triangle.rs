@@ -6,7 +6,7 @@ use super::Primitive;
 use super::aabb::AABB;
 
 use ray::{Ray,Intersection};
-use material::{Material, LIGHT_COLOR};
+use material::{Material, LIGHT_COLOR, Emissive};
 
 #[derive(Debug)]
 pub struct Triangle {
@@ -29,10 +29,8 @@ impl Triangle {
             normal1: n1,
             normal2: n2,
             material: Material::Realistic {
-                refl: 0.0,
-                refr: 0.0,
-                emissive: true,
                 diffuse: LIGHT_COLOR,
+                emissive: Emissive::Emissive,
             }
         }
     }
@@ -90,7 +88,7 @@ impl Primitive for Triangle {
     }
     fn is_light(&self) -> bool {
         match self.material {
-            Material::Realistic{ refl, refr, emissive, diffuse } => emissive,
+            Material::Realistic{ emissive: Emissive::Emissive, diffuse} => true,
             _ => false,
         }
     }
@@ -130,5 +128,5 @@ fn intersections_triangle() {
 
     // Intersects triangle from other side.
     let mut r1 = Ray::new(Point3::new(0.0,0.0,2.5), Vector3::new(0.0,0.0,-1.0), f32::INFINITY);
-    assert!(triangle.intersect(&mut r1).is_some());
+    assert!(triangle.intersect(&mut r1));
 }

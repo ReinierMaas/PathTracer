@@ -78,7 +78,7 @@ impl Game {
             for x in 0..self.accumulator.width {
                 let mut ray = self.camera.generate(x,y);
                 let idx = x + y * self.accumulator.width;
-                self.accumulator.buf[idx] += self.camera.sample(&mut ray, 0);
+                self.accumulator.buf[idx] += self.camera.sample(&mut ray, 1);
             }
         }
 
