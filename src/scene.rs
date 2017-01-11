@@ -152,8 +152,11 @@ impl Scene {
     fn read_skybox() -> Result<Vec<f32>, io::Error> {
         let file = try!(Mmap::open_path("./assets/sky_15.raw", Protection::Read));
         let bytes: &[u8] = unsafe { file.as_slice() };
-        let mut floats = vec![0.0 as f32; bytes.len() / 4];
+        let mut floats = vec![0.0 as f32; bytes.len() / 2];
+        println!("{}",floats.len());
         for (mut chunk, mut float) in bytes.chunks(4).into_iter().zip(floats.iter_mut()) {
+            // we assume big endian here!
+            // but intel is little endian
             *float = unsafe { mem::transmute([chunk[0],chunk[1],chunk[2],chunk[3]]) };
         }
         Ok(floats)

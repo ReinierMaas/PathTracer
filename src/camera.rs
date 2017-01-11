@@ -113,11 +113,11 @@ impl Camera {
 
     fn update(&mut self) {
         self.direction = (self.target-self.origin).normalize();
-        self.up = Vector3::new(0.0,1.0,0.0);
-        self.right = self.direction.cross(self.right);
+        let unitY = Vector3::new(0.0,1.0,0.0);
+        self.right = unitY.cross(self.direction);
         self.up = self.direction.cross(self.right);
 
-        let mut ray = Ray::new(self.origin, self.direction, f32::INFINITY);
+        let mut ray = Ray::new(self.origin, self.direction, 1e34);
         self.scene.intersect(& mut ray);
 
         let aspect_ratio = (self.width as f32) / (self.height as f32);

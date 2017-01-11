@@ -110,8 +110,8 @@ impl Game {
 
 fn vec_to_rgb(vec : Vector3<f32>) -> Vector3<u8> {
     Vector3::new((255.0 as f32).min( 256.0 * 1.5 * vec.x.sqrt()) as u8,
-                 (255.0 as f32).min( 256.0 * 1.5 * vec.x.sqrt()) as u8,
-                 (255.0 as f32).min( 256.0 * 1.5 * vec.x.sqrt()) as u8)
+                 (255.0 as f32).min( 256.0 * 1.5 * vec.y.sqrt()) as u8,
+                 (255.0 as f32).min( 256.0 * 1.5 * vec.z.sqrt()) as u8)
 }
 fn main() {
     const WIDTH: usize = 800;
