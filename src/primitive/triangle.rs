@@ -6,7 +6,7 @@ use std::sync::Arc;
 use super::Primitive;
 use super::aabb::AABB;
 
-use ray::Ray;
+use ray::{Ray,Intersection};
 use material::{Material, LIGHT_COLOR};
 
 #[derive(Debug)]
@@ -17,7 +17,7 @@ pub struct Triangle {
     pub normal0: Vector3<f32>,
     pub normal1: Vector3<f32>,
     pub normal2: Vector3<f32>,
-    pub material: Arc<Material>,
+    pub material: Material,
 }
 
 impl Triangle {
@@ -29,18 +29,18 @@ impl Triangle {
             normal0: n0,
             normal1: n1,
             normal2: n2,
-            material: Arc::new(Material::Realistic {
+            material: Material::Realistic {
                 refl: 0.0,
                 refr: 0.0,
                 emissive: true,
                 diffuse: LIGHT_COLOR,
-            })
+            }
         }
     }
 }
 
 impl Primitive for Triangle {
-    fn intersect(&self, ray : & mut Ray) -> bool{
+    fn intersect<'a>(&'a self, ray: &'a mut Ray<'a>) -> bool {
         let edge1 = self.position1 - self.position0;
         let edge2 = self.position2 - self.position0;
         let h = ray.direction.cross(edge2);
@@ -74,7 +74,7 @@ impl Primitive for Triangle {
         ray.intersection = Some(Intersection{
             normal: ((1. - u - v) * self.normal0 + u * self.normal1 + v * self.normal2).normalize(),
             inside: true,
-            material: self.material.clone(),
+            material: &self.material,
         });
         return true;
     }
@@ -90,8 +90,8 @@ impl Primitive for Triangle {
                             z : self.position0.z.max(self.position1.z).max(self.position2.z) }}
     }
     fn is_light(&self) -> bool {
-        match self.material.as_ref() {
-            &Material::Realistic{ refl: refl, refr: refr, emissive: emissive, diffuse: diffuse } => emissive,
+        match self.material {
+            Material::Realistic{ refl: refl, refr: refr, emissive: emissive, diffuse: diffuse } => emissive,
             _ => false,
         }
     }

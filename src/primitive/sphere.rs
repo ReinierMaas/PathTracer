@@ -14,7 +14,7 @@ use material::{Material, LIGHT_COLOR};
 pub struct Sphere {
     pub position: Point3<f32>,
     pub radius: f32,
-    pub material: Arc<Material>,
+    pub material: Material,
 }
 
 impl Sphere {
@@ -22,18 +22,18 @@ impl Sphere {
         Sphere {
             position: position,
             radius: radius,
-            material: Arc::new(Material::Realistic {
+            material: Material::Realistic {
                 refl: 0.0,
                 refr: 0.0,
                 emissive: true,
                 diffuse: LIGHT_COLOR,
-            })
+            }
         }
     }
 }
 
 impl Primitive for Sphere {
-    fn intersect(&self, ray : &mut Ray) -> bool {
+    fn intersect<'a>(&'a self, ray: &mut Ray<'a>) -> bool {
         let distance = self.position - ray.origin;
         let tca = distance.dot(ray.direction);
 
@@ -60,7 +60,7 @@ impl Primitive for Sphere {
             ray.intersection = Some(Intersection{
                 normal: (ray.origin + ray.direction * t0 - self.position).normalize(),
                 inside:  false,
-                material: self.material.clone(),
+                material: &self.material,
             });
             return true;
         } else if t1 >= 0.0 {
@@ -71,7 +71,7 @@ impl Primitive for Sphere {
             ray.intersection = Some(Intersection{
                 normal: (ray.origin + ray.direction * t1 - self.position).normalize(),
                 inside: true,
-                material: self.material.clone(),
+                material: &self.material,
             });
             return true;
         }
@@ -89,8 +89,8 @@ impl Primitive for Sphere {
                             z : self.position.z + self.radius }}
     }
     fn is_light(&self) -> bool {
-        match self.material.as_ref() {
-            &Material::Realistic{ refl: refl, refr: refr, emissive: emissive, diffuse: diffuse } => emissive,
+        match self.material {
+            Material::Realistic{ refl: refl, refr: refr, emissive: emissive, diffuse: diffuse } => emissive,
             _ => false,
         }
     }

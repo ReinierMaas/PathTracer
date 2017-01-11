@@ -62,7 +62,15 @@ impl BVH {
             left_first: 0,
             count: total }
         );
-        let mut bvh = BVH { triangles: triangles, spheres: spheres, indices: indices, bounds: bounds, centres: centres, lights: lights, bvh_nodes: bvh_nodes };
+        let mut bvh = BVH {
+            triangles: triangles,
+            spheres: spheres,
+            indices: indices,
+            bounds: bounds,
+            centres: centres,
+            lights: lights,
+            bvh_nodes: bvh_nodes
+        };
         bvh.subdivide(0);
         bvh
     }

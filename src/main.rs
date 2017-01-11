@@ -24,6 +24,7 @@ mod bvh;
 
 use camera::Camera;
 use scene::Scene;
+use material::Material;
 
 struct Accumulator {
     spp: u32,
@@ -71,7 +72,7 @@ impl Game {
 
     fn tick(&mut self, key_presses : &HashSet<Keycode>) {
         print!("tick!\n");
-        if (self.camera.handle_input(&key_presses)) {
+        if self.camera.handle_input(&key_presses) {
             print!("clear\n");
             self.accumulator.clear();
         }
@@ -118,6 +119,8 @@ fn main() {
     const HEIGHT: usize = 600;
     let sdl_context = sdl2::init().expect("SDL Context");
     let video_subsystem = sdl_context.video().expect("Video subsystem");
+
+
 
     let window = video_subsystem.window("Pathtracer", WIDTH as u32, HEIGHT as u32)
         .position_centered()
