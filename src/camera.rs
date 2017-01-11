@@ -165,8 +165,7 @@ impl Camera {
                     sample = sample.mul_element_wise(self.scene.sample_skybox(ray.direction));
                     break;
                 }
-                Some(ref intersection) => {
-                    let material = intersection.material;
+                Some(ref Intersection{normal, inside, material}) => {
                     match material {
                         &Material::Realistic { ref emissive, diffuse } => {
                             match emissive {
@@ -175,8 +174,8 @@ impl Camera {
                                     break;
                                 }
                                 &Emissive::NonEmissive { refl, refr } => {
-                                    // TODO
-                                    break;
+                                    let Closed01(r0) = rand::random::<Closed01<f32>>();
+
                                 }
                             }
                         }

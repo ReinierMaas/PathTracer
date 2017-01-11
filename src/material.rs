@@ -15,6 +15,7 @@ pub enum Emissive {
     Emissive,
     NonEmissive {
         refl: f32,
+        // This is the refraction index
         refr: f32,
     }
 }
