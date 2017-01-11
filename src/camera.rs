@@ -34,7 +34,6 @@ pub struct Camera {
 }
 
 impl Camera {
-
     pub fn new(width: u32, height: u32, scene: Scene) -> Camera {
         let mut camera = Camera {
             width: width,
@@ -127,11 +126,11 @@ impl Camera {
     pub fn sample(&self, ray : & mut Ray, depth: u32) -> Vector3<f32> {
         self.scene.intersect(ray);
         //print!("{:?}\n", ray.direction);
-        let sample = match ray.material {
+        let sample = match ray.intersection {
             None => {
                 self.scene.sample_skybox(ray.direction)
             },
-            Some(ref material) => {
+            Some(ref intersection) => {
                 self.scene.sample_skybox(ray.direction)
             }
         };

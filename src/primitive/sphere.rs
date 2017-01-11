@@ -6,7 +6,7 @@ use std::f32;
 use super::Primitive;
 use super::aabb::AABB;
 
-use ray::Ray;
+use ray::{Ray, Intersection};
 use material::{Material, LIGHT_COLOR};
 
 #[derive(Debug)]
@@ -32,7 +32,7 @@ impl Sphere {
 }
 
 impl Primitive for Sphere {
-    fn intersect(&self, ray : & mut Ray) -> bool {
+    fn intersect(&self, ray : &mut Ray) -> bool {
         let distance = self.position - ray.origin;
         let tca = distance.dot(ray.direction);
 
@@ -55,13 +55,23 @@ impl Primitive for Sphere {
             if t0 >= ray.distance {
                 return false;
             }
-            ray.normal = (ray.origin + ray.direction * t0 - self.position).normalize();
+            ray.distance = t0;
+            //ray.intersection = Some(Intersection{
+            //    normal: (ray.origin + ray.direction * t0 - self.position).normalize(),
+            //    inside:  false,
+            //    material: &self.material,
+            //});
             return true;
         } else if t1 >= 0.0 {
             if t1 >= ray.distance {
                 return false;
             }
-            ray.normal = (ray.origin + ray.direction * t1 - self.position).normalize();
+            ray.distance = t1;
+            //ray.intersection = Some(Intersection{
+            //    normal: (ray.origin + ray.direction * t1 - self.position).normalize(),
+            //    inside: true,
+            //    material: &self.material,
+            //});
             return true;
         }
         false
@@ -76,6 +86,12 @@ impl Primitive for Sphere {
               max : Point3 {x : self.position.x + self.radius,
                             y : self.position.y + self.radius,
                             z : self.position.z + self.radius }}
+    }
+    fn is_light(&self) -> bool {
+        match self.material {
+            Material::Realistic{ refl: refl, refr: refr, emissive: emissive, diffuse: diffuse } => emissive,
+            _ => false,
+        }
     }
 }
 

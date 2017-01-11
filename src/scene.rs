@@ -7,6 +7,7 @@ use std::io::prelude::*;
 use std::mem;
 use std::slice;
 use ray::Ray;
+use bvh::BVH;
 use std::f32::consts::FRAC_1_PI;
 extern crate memmap;
 use self::memmap::*;
@@ -17,6 +18,7 @@ use material::Material;
 
 #[derive(Debug)]
 pub struct Scene {
+    bvh: BVH,
     spheres: Vec<Sphere>,
     skybox: Vec<f32>,
 }
@@ -27,6 +29,7 @@ impl Scene {
         let mut spheres = Vec::new();
         let skybox = try!(Scene::read_skybox());
         let mut scene = Scene {
+            bvh: BVH::new(Vec::new(), Vec::new()),
             spheres: spheres,
             skybox: skybox,
         };

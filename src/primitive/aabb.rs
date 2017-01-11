@@ -2,6 +2,7 @@ extern crate cgmath;
 use self::cgmath::{Vector3, Point3};
 
 use std::f32;
+use std::ops::Index;
 
 use super::Primitive;
 
@@ -20,7 +21,7 @@ impl AABB {
             max: Point3 { x: -f32::INFINITY, y: -f32::INFINITY, z: -f32::INFINITY },
         }
     }
-    pub fn extent(&self, position: Point3<f32>) -> AABB {
+    pub fn extent(&self, position: &Point3<f32>) -> AABB {
         AABB {min : Point3 {x : self.min.x.min(position.x),
                             y : self.min.y.min(position.y),
                             z : self.min.z.min(position.z) },
@@ -29,7 +30,7 @@ impl AABB {
                             z : self.max.z.max(position.z) }
         }
     }
-    pub fn combine(&self, aabb: AABB) -> AABB {
+    pub fn combine(&self, aabb: &AABB) -> AABB {
         AABB {min : Point3 {x : self.min.x.min(aabb.min.x),
                             y : self.min.y.min(aabb.min.y),
                             z : self.min.z.min(aabb.min.z) },
@@ -37,6 +38,9 @@ impl AABB {
                             y : self.max.y.max(aabb.max.y),
                             z : self.max.z.max(aabb.max.z) }
         }
+    }
+    pub fn size(&self) -> Vector3<f32> {
+        self.max - self.min
     }
 }
 
@@ -78,6 +82,9 @@ impl Primitive for AABB {
     }
     fn bounds(&self) -> AABB {
         AABB { min : self.min, max : self.max }
+    }
+    fn is_light(&self) -> bool {
+        false
     }
 }
 

@@ -83,6 +83,12 @@ impl Primitive for Triangle {
                             y : self.position0.y.max(self.position1.y).max(self.position2.y),
                             z : self.position0.z.max(self.position1.z).max(self.position2.z) }}
     }
+    fn is_light(&self) -> bool {
+        match self.material {
+            Material::Realistic{ refl: refl, refr: refr, emissive: emissive, diffuse: diffuse } => emissive,
+            _ => false,
+        }
+    }
 }
 
 #[test]

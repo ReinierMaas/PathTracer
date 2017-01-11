@@ -20,14 +20,10 @@ mod primitive;
 mod scene;
 mod path_tracer;
 mod camera;
+mod bvh;
 
 use camera::Camera;
 use scene::Scene;
-use ray::Ray;
-
-
-
-use std::cell::Cell;
 
 struct Accumulator {
     spp: u32,

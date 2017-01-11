@@ -13,4 +13,5 @@ pub trait Primitive {
     fn intersect(&self, ray : & mut Ray) -> bool;
     fn centre(&self) -> Point3<f32>;
     fn bounds(&self) -> AABB;
+    fn is_light(&self) -> bool;
 }
