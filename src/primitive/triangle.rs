@@ -6,7 +6,7 @@ use super::Primitive;
 use super::aabb::AABB;
 
 use ray::{Ray,Intersection};
-use material::{Material, LIGHT_COLOR, Emissive};
+use material::{Material, LIGHT_COLOR};
 
 #[derive(Debug)]
 pub struct Triangle {
@@ -28,9 +28,8 @@ impl Triangle {
             normal0: n0,
             normal1: n1,
             normal2: n2,
-            material: Material::Realistic {
-                diffuse: LIGHT_COLOR,
-                emissive: Emissive::Emissive,
+            material: Material::Emissive {
+                color: LIGHT_COLOR,
             }
         }
     }
@@ -88,7 +87,7 @@ impl Primitive for Triangle {
     }
     fn is_light(&self) -> bool {
         match self.material {
-            Material::Realistic{ emissive: Emissive::Emissive, diffuse} => true,
+            Material::Emissive { color } => true,
             _ => false,
         }
     }

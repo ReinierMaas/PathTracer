@@ -7,7 +7,7 @@ use super::Primitive;
 use super::aabb::AABB;
 
 use ray::{Ray, Intersection};
-use material::{Material, LIGHT_COLOR, Emissive};
+use material::{Material, LIGHT_COLOR};
 
 #[derive(Debug)]
 pub struct Sphere {
@@ -21,9 +21,8 @@ impl Sphere {
         Sphere {
             position: position,
             radius: radius,
-            material: Material::Realistic {
-                emissive: Emissive::Emissive,
-                diffuse: LIGHT_COLOR,
+            material: Material::Emissive {
+                color: LIGHT_COLOR,
             }
         }
     }
@@ -89,7 +88,7 @@ impl Primitive for Sphere {
     }
     fn is_light(&self) -> bool {
         match self.material {
-            Material::Realistic{ emissive: Emissive::Emissive, diffuse } => true,
+            Material::Emissive { color } => true,
             _ => false,
         }
     }

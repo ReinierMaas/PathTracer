@@ -11,7 +11,6 @@ use self::sdl2::keyboard::Keycode;
 use self::rand::Closed01;
 
 use scene::Scene;
-use material::Emissive;
 use material::Material;
 
 #[derive(Debug)]
@@ -159,7 +158,7 @@ impl Camera {
     pub fn sample(&self, ray: &mut Ray, depth: u32) -> Vector3<f32> {
         let mut sample = Vector3::new(1., 1., 1.);
         let mut intersection = self.scene.intersect(ray);
-        let mut refraction_index = 1.; //Air
+        let mut prev_refraction_index = 1.; //Air
         for _ in 0..depth {
             match intersection {
                 None => {
@@ -168,75 +167,52 @@ impl Camera {
                 }
                 Some(Intersection{normal, inside, material}) => {
                     match material {
-                        &Material::Realistic { ref emissive, diffuse } => {
-                            match emissive {
-                                &Emissive::Emissive => {
-                                    sample = sample.mul_element_wise(diffuse);
-                                    break;
-                                }
-                                &Emissive::NonEmissive { refl, refr } => {
-                                    if refr == 0. {
-                                    } else {
-                                        let refracted_dir = {
-                                            let div = if inside { refr / refraction_index } else { refraction_index / refr };
-                                            let cosi = ray.direction.dot(normal);
-                                            let sin_t2 = div * div * (1. - cosi * cosi);
-                                            if sin_t2 <= 1. {
-                                                Some(div * ray.direction - (div * cosi + (1. - sin_t2).sqrt()) * normal)
-                                            } else {
-                                                None
-                                            }
-                                        };
-                                        if let Some(refracted_dir) = refracted_dir {
+                        &Material::Diffuse { speculaty, color} =>{
 
-                                            let reflection = {
-                                                let div = (refraction_index - refr) / (refraction_index + refr);
-                                                let r0 = div * div;
-                                                let cosi = -ray.direction.dot(normal);
-                                                r0 + (1. - r0) * (1. - cosi).powi(5)
-                                            };
-                                            let refraction = 1. - reflection;
-                                            let Closed01(r0) = rand::random::<Closed01<f32>>();
-                                            //println!("{:?} {:?}",r0, refraction);
-                                            if r0 < refraction {
-                                                // refraction ray
-                                                refraction_index = refr;
-                                                ray.origin = ray.origin + ray.distance * ray.direction;
-                                                ray.direction = refracted_dir;
-                                                ray.origin += f32::EPSILON * ray.direction;
-                                                ray.distance = f32::INFINITY;
-                                                intersection = self.scene.intersect(ray);
-                                                let absorbance = (Vector3::new(-1.,-1.,-1.) + diffuse) * ray.distance;
-                                                let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
-                                                sample = sample.mul_element_wise(transparency);
-                                            } else {
-                                                // relected ray
-                                                ray.origin = ray.origin + ray.distance * ray.direction;
-                                                ray.direction = ray.direction - 2. * ray.direction.dot(normal) * normal;
-                                                ray.origin += f32::EPSILON * ray.direction;
-                                                ray.distance = f32::INFINITY;
-                                                intersection = self.scene.intersect(ray);
-                                            }
-                                        } else {
-                                            // full internal relection
-                                            ray.origin = ray.origin + ray.distance * ray.direction;
-                                            ray.direction = ray.direction - 2. * ray.direction.dot(normal) * normal;
-                                            ray.origin += f32::EPSILON * ray.direction;
-                                            ray.distance = f32::INFINITY;
-                                            intersection = self.scene.intersect(ray);
-                                        }
-                                    }
+                        }
+                        &Material::Dielectic { refraction_index, color } => {
+                            let refracted_dir = {
+                                let div = if inside { refraction_index / prev_refraction_index } else { prev_refraction_index / refraction_index };
+                                let cosi = ray.direction.dot(normal);
+                                let sin_t2 = div * div * (1. - cosi * cosi);
+                                if sin_t2 <= 1. {
+                                    Some(div * ray.direction - (div * cosi + (1. - sin_t2).sqrt()) * normal)
+                                } else {
+                                    None
+                                }
+                            };
+                            if let Some(refracted_dir) = refracted_dir {
+                                let reflection = {
+                                    let div = (prev_refraction_index - refraction_index) / (prev_refraction_index + refraction_index);
+                                    let r0 = div * div;
+                                    let cosi = -ray.direction.dot(normal);
+                                    r0 + (1. - r0) * (1. - cosi).powi(5)
+                                };
+                                let refraction = 1. - reflection;
+                                let Closed01(r0) = rand::random::<Closed01<f32>>();
+                                if r0 < refraction {
+                                    // refraction ray
+                                    prev_refraction_index = refraction_index;
+                                    ray.origin = ray.origin + ray.distance * ray.direction;
+                                    ray.direction = refracted_dir;
+                                    ray.origin += f32::EPSILON * ray.direction; // advance ray
+                                    ray.distance = f32::INFINITY;
+                                    intersection = self.scene.intersect(ray);
+                                    let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
+                                    let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
+                                    sample = sample.mul_element_wise(transparency);
+                                    continue
                                 }
                             }
+                            // full internal relection or reflected ray
+                            ray.origin = ray.origin + ray.distance * ray.direction;
+                            ray.direction = ray.direction - 2. * ray.direction.dot(normal) * normal;
+                            ray.origin += f32::EPSILON * ray.direction;
+                            ray.distance = f32::INFINITY;
+                            intersection = self.scene.intersect(ray);
                         }
-                        CheckerBoard => {
-                            let intersection = ray.origin + ray.distance * ray.direction;
-                            let tx = ((intersection.x * 3. + 1000.) as i32 +
-                                      (intersection.z * 3. + 1000.) as i32) &
-                                     1;
-                            if tx != 1 {
-                                sample = 0.2 * sample;
-                            }
+                        &Material::Emissive { color } => {
+                            sample = sample.mul_element_wise(color);
                             break;
                         }
                     }

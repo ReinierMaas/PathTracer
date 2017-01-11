@@ -3,20 +3,16 @@ use self::cgmath::Vector3;
 
 #[derive(Debug)]
 pub enum Material {
-    CheckerBoard,
-    Realistic {
-        emissive: Emissive,
-        diffuse: Vector3<f32>,
-    }
-}
-
-#[derive(Debug)]
-pub enum Emissive {
-    Emissive,
-    NonEmissive {
-        refl: f32,
-        // This is the refraction index
-        refr: f32,
+    Diffuse {
+        speculaty: f32,
+        color: Vector3<f32>,
+    },
+    Dielectic {
+        refraction_index: f32,
+        color: Vector3<f32>,
+    },
+    Emissive {
+        color: Vector3<f32>,
     }
 }
 

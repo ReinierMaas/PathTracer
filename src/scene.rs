@@ -10,7 +10,7 @@ use self::memmap::*;
 
 use primitive::Primitive;
 use primitive::sphere::Sphere;
-use material::{Material, Emissive};
+use material::Material;
 
 #[derive(Debug)]
 pub struct Scene {
@@ -52,18 +52,18 @@ impl Scene {
         let bottom_plane = Sphere {
             position: Point3::new(0.0,-4999.0,0.0),
             radius: 4998.5,
-            material: Material::CheckerBoard,
+            material: Material::Diffuse {
+                speculaty: 0.,
+                color: Vector3::new(0.0,1.0,1.0),
+            },
         };
 
         let back_plane = Sphere {
             position: Point3::new(0.0,0.0,-5000.0),
             radius: 4998.5,
-            material: Material::Realistic {
-                emissive: Emissive::NonEmissive {
-                    refl: 0.0,
-                    refr: 0.0,
-                },
-                diffuse: Vector3::new(1.0,1.0,1.0),
+            material: Material::Diffuse {
+                speculaty: 0.,
+                color: Vector3::new(1.0,1.0,1.0),
             },
         };
 
@@ -72,70 +72,52 @@ impl Scene {
         scene.add(Sphere {
             position: Point3::new(-0.8, 0.0, -2.0),
             radius: 0.3,
-            material: Material::Realistic {
-                diffuse: Vector3::new(1.0,0.2,0.2),
-                emissive: Emissive::NonEmissive {
-                    refl: 0.8,
-                    refr: 0.0,
-                },
+            material: Material::Diffuse {
+                speculaty: 0.8,
+                color: Vector3::new(1.0,0.2,0.2),
             },
         });
 
         scene.add(Sphere {
             position: Point3::new(0.0,0.0,-2.0),
             radius: 0.3,
-            material: Material::Realistic {
-                diffuse: Vector3::new(0.9,1.0,0.9),
-                emissive: Emissive::NonEmissive {
-                    refl: 0.0,
-                    refr: 1.3,
-                },
+            material: Material::Dielectic {
+                refraction_index: 1.3,
+                color: Vector3::new(0.9,1.0,0.9),
             },
         });
 
         scene.add(Sphere {
             position: Point3::new(0.8,0.0,-2.0),
             radius: 0.3,
-            material: Material::Realistic {
-                diffuse: Vector3::new(0.2, 0.2, 1.0),
-                emissive: Emissive::NonEmissive {
-                    refl: 0.8,
-                    refr: 0.0,
-                },
+            material: Material::Diffuse {
+                speculaty: 0.8,
+                color: Vector3::new(0.2, 0.2, 1.0),
             },
         });
 
         scene.add(Sphere {
             position: Point3::new(-0.8,-0.8,-2.0),
             radius: 0.5,
-            material: Material::Realistic {
-                diffuse: Vector3::new(1.0, 1.0, 1.0),
-                emissive: Emissive::NonEmissive {
-                    refl: 0.0,
-                    refr: 0.0,
-                },
+            material: Material::Diffuse {
+                speculaty: 0.,
+                color: Vector3::new(1.0,1.0,1.0),
             },
         });
         scene.add(Sphere {
             position: Point3::new(-0.0,-0.8,-2.0),
             radius: 0.5,
-            material: Material::Realistic {
-                diffuse: Vector3::new(1.0, 1.0, 1.0),
-                emissive: Emissive::NonEmissive {
-                    refl: 0.0,
-                    refr: 0.0,
-                },
+            material: Material::Diffuse {
+                speculaty: 0.,
+                color: Vector3::new(1.0,1.0,1.0),
             },
         });
         scene.add(Sphere {
             position: Point3::new(0.8,-0.8,-2.0),
             radius: 0.5,
-            material: Material::Realistic {
-                diffuse: Vector3::new(1.0, 1.0, 1.0),
-                emissive: Emissive::NonEmissive {
-                    refl: 0.0,
-                    refr: 0.0,
-                },
+            material: Material::Diffuse {
+                speculaty: 0.,
+                color: Vector3::new(1.0,1.0,1.0),
             },
         });
 
