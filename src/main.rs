@@ -3,7 +3,6 @@ extern crate cgmath;
 extern crate sdl2;
 
 use std::io;
-use std::io::prelude::*;
 
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
@@ -18,13 +17,11 @@ mod ray;
 mod material;
 mod primitive;
 mod scene;
-mod path_tracer;
 mod camera;
 mod bvh;
 
 use camera::Camera;
 use scene::Scene;
-use material::Material;
 
 struct Accumulator {
     spp: u32,
@@ -71,9 +68,7 @@ impl Game {
     }
 
     fn tick(&mut self, key_presses : &HashSet<Keycode>) {
-        print!("tick!\n");
         if self.camera.handle_input(&key_presses) {
-            print!("clear\n");
             self.accumulator.clear();
         }
 
@@ -170,9 +165,3 @@ fn main() {
     }
 }
 
-/// Fills a vector with a value
-fn fill<T : Copy>(vec : &mut Vec<T>, value : T) {
-    for i in 0..vec.len() {
-        vec[i] = value;
-    }
-}

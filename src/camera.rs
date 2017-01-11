@@ -3,13 +3,10 @@ extern crate rand;
 extern crate sdl2;
 use self::cgmath::{Vector3, Point3};
 use self::cgmath::InnerSpace;
-use self::cgmath::One;
 use super::ray::Ray;
 use std::f32;
 use std::collections::HashSet;
 use self::sdl2::keyboard::Keycode;
-use std::io;
-use std::io::prelude::*;
 use self::rand::Closed01;
 
 use scene::Scene;
@@ -113,11 +110,11 @@ impl Camera {
 
     fn update(&mut self) {
         self.direction = (self.target-self.origin).normalize();
-        let unitY = Vector3::new(0.0,1.0,0.0);
-        self.right = unitY.cross(self.direction);
+        let unit_y = Vector3::new(0.0,1.0,0.0);
+        self.right = unit_y.cross(self.direction);
         self.up = self.direction.cross(self.right);
 
-        let mut ray = Ray::new(self.origin, self.direction, 1e34);
+        let mut ray = Ray::new(self.origin, self.direction, f32::INFINITY);
         let _intersection = self.scene.intersect(& mut ray);
 
         let aspect_ratio = (self.width as f32) / (self.height as f32);

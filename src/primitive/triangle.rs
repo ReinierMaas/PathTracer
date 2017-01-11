@@ -1,7 +1,6 @@
 extern crate cgmath;
 use self::cgmath::{Vector3, Point3, InnerSpace, EuclideanSpace};
 use std::f32;
-use std::sync::Arc;
 
 use super::Primitive;
 use super::aabb::AABB;
@@ -91,7 +90,7 @@ impl Primitive for Triangle {
     }
     fn is_light(&self) -> bool {
         match self.material {
-            Material::Realistic{ refl: refl, refr: refr, emissive: emissive, diffuse: diffuse } => emissive,
+            Material::Realistic{ refl, refr, emissive, diffuse } => emissive,
             _ => false,
         }
     }
@@ -103,33 +102,33 @@ fn intersections_triangle() {
 
     // Intersects forwards
     let mut r1 = Ray::new(Point3::new(0.0,0.0,0.0), Vector3::new(0.0,0.0,1.0), f32::INFINITY);
-    assert!(triangle.intersect(&mut r1));
+    assert!(triangle.intersect(&mut r1).is_some());
 
     // Doesn't intersect backwards.
     let mut r1 = Ray::new(Point3::new(0.0,0.0,0.0), Vector3::new(0.0,0.0,-1.0), f32::INFINITY);
-    assert!(!triangle.intersect(&mut r1));
+    assert!(!triangle.intersect(&mut r1).is_some());
 
     // Barely intersects top.
     let mut r1 = Ray::new(Point3::new(1.0,1.0,0.0), Vector3::new(0.0,0.0,1.0), f32::INFINITY);
-    assert!(triangle.intersect(&mut r1));
+    assert!(triangle.intersect(&mut r1).is_some());
 
     // Doesn't intersect on ray origin, is parrallel to triangle.
     let mut r1 = Ray::new(Point3::new(0.0,0.0,2.0), Vector3::new(0.0,1.0,0.0), f32::INFINITY);
-    assert!(!triangle.intersect(&mut r1));
+    assert!(!triangle.intersect(&mut r1).is_some());
 
     // Intersects on ray origin.
     let mut r1 = Ray::new(Point3::new(0.0,0.0,2.0), Vector3::new(0.0,0.0,-1.0), f32::INFINITY);
-    assert!(triangle.intersect(&mut r1));
+    assert!(triangle.intersect(&mut r1).is_some());
 
     // Intersects on ray origin.
     let mut r1 = Ray::new(Point3::new(0.0,0.0,2.0), Vector3::new(0.0,0.0,1.0), f32::INFINITY);
-    assert!(triangle.intersect(&mut r1));
+    assert!(triangle.intersect(&mut r1).is_some());
 
     // Doesn't intersect ray in front of triangle.
     let mut r1 = Ray::new(Point3::new(0.0,0.0,2.5), Vector3::new(0.0,0.0,1.0), f32::INFINITY);
-    assert!(!triangle.intersect(&mut r1));
+    assert!(!triangle.intersect(&mut r1).is_some());
 
     // Intersects triangle from other side.
     let mut r1 = Ray::new(Point3::new(0.0,0.0,2.5), Vector3::new(0.0,0.0,-1.0), f32::INFINITY);
-    assert!(triangle.intersect(&mut r1));
+    assert!(triangle.intersect(&mut r1).is_some());
 }

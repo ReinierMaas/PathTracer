@@ -1,11 +1,7 @@
 extern crate cgmath;
-use self::cgmath::{Vector3, Point3, InnerSpace};
-use std::fs::File;
+use self::cgmath::{Vector3, Point3};
 use std::io;
-use std::io::Cursor;
-use std::io::prelude::*;
 use std::mem;
-use std::slice;
 use ray::{Ray,Intersection};
 use bvh::BVH;
 use std::f32::consts::FRAC_1_PI;
@@ -26,9 +22,9 @@ pub struct Scene {
 impl Scene {
     // creates a new default scene
     fn new() -> Result<Scene, io::Error> {
-        let mut spheres = Vec::new();
+        let spheres = Vec::new();
         let skybox = try!(Scene::read_skybox());
-        let mut scene = Scene {
+        let scene = Scene {
             bvh: BVH::new(Vec::new(), Vec::new()),
             spheres: spheres,
             skybox: skybox,
@@ -53,13 +49,13 @@ impl Scene {
 
         scene.add(Sphere::light(Point3::new(2.7,1.7,-0.5), 0.3));
 
-        let bottomPlane = Sphere {
+        let bottom_plane = Sphere {
             position: Point3::new(0.0,-4999.0,0.0),
             radius: 4998.5,
             material: Material::CheckerBoard,
         };
 
-        let backPlane = Sphere {
+        let back_plane = Sphere {
             position: Point3::new(0.0,0.0,-5000.0),
             radius: 4998.5,
             material: Material::Realistic {
@@ -70,8 +66,8 @@ impl Scene {
             },
         };
 
-        scene.add(bottomPlane);
-        scene.add(backPlane);
+        scene.add(bottom_plane);
+        scene.add(back_plane);
         scene.add(Sphere {
             position: Point3::new(-0.8, 0.0, -2.0),
             radius: 0.3 * 0.3,
@@ -158,7 +154,7 @@ impl Scene {
         let bytes: &[u8] = unsafe { file.as_slice() };
         let mut floats = vec![0.0 as f32; bytes.len() / 2];
         println!("{}",floats.len());
-        for (mut chunk, mut float) in bytes.chunks(4).into_iter().zip(floats.iter_mut()) {
+        for (chunk, mut float) in bytes.chunks(4).into_iter().zip(floats.iter_mut()) {
             // we assume big endian here!
             // but intel is little endian
             *float = unsafe { mem::transmute([chunk[0],chunk[1],chunk[2],chunk[3]]) };

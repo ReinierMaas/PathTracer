@@ -2,7 +2,6 @@ extern crate cgmath;
 use self::cgmath::{Point3, InnerSpace};
 
 use std::f32;
-use std::sync::Arc;
 
 use super::Primitive;
 use super::aabb::AABB;
@@ -92,7 +91,7 @@ impl Primitive for Sphere {
     }
     fn is_light(&self) -> bool {
         match self.material {
-            Material::Realistic{ refl: refl, refr: refr, emissive: emissive, diffuse: diffuse } => emissive,
+            Material::Realistic{ refl, refr, emissive, diffuse } => emissive,
             _ => false,
         }
     }
@@ -100,37 +99,38 @@ impl Primitive for Sphere {
 
 #[test]
 fn intersections_sphere() {
+    use self::cgmath::Vector3;
     let sphere = Sphere::light(Point3::new(0.0, 0.0, 2.0), 1.0);
 
     // Intersects forwards
     let mut r1 = Ray::new(Point3::new(0.0,0.0,0.0), Vector3::new(0.0,0.0,1.0), f32::INFINITY);
-    assert!(sphere.intersect(&mut r1));
+    assert!(sphere.intersect(&mut r1).is_some());
 
     // Doesn't intersect backwards.
     let mut r1 = Ray::new(Point3::new(0.0,0.0,0.0), Vector3::new(0.0,0.0,-1.0), f32::INFINITY);
-    assert!(!sphere.intersect(&mut r1));
+    assert!(!sphere.intersect(&mut r1).is_some());
 
     // Barely intersects top.
     let mut r1 = Ray::new(Point3::new(0.0,1.0,0.0), Vector3::new(0.0,0.0,1.0), f32::INFINITY);
-    assert!(sphere.intersect(&mut r1));
+    assert!(sphere.intersect(&mut r1).is_some());
 
     // Intersects on ray origin.
     let mut r1 = Ray::new(Point3::new(0.0,0.0,1.0), Vector3::new(0.0,1.0,0.0), f32::INFINITY);
-    assert!(sphere.intersect(&mut r1));
+    assert!(sphere.intersect(&mut r1).is_some());
 
     // Intersects on ray origin.
     let mut r1 = Ray::new(Point3::new(0.0,0.0,1.0), Vector3::new(0.0,0.0,-1.0), f32::INFINITY);
-    assert!(sphere.intersect(&mut r1));
+    assert!(sphere.intersect(&mut r1).is_some());
 
     // Intersects inside.
     let mut r1 = Ray::new(Point3::new(0.0,0.0,2.0), Vector3::new(0.0,0.0,1.0), f32::INFINITY);
-    assert!(sphere.intersect(&mut r1));
+    assert!(sphere.intersect(&mut r1).is_some());
 
     // Intersects inside.
     let mut r1 = Ray::new(Point3::new(0.0,0.0,2.5), Vector3::new(0.0,0.0,1.0), f32::INFINITY);
-    assert!(sphere.intersect(&mut r1));
+    assert!(sphere.intersect(&mut r1).is_some());
 
     // Intersects inside.
     let mut r1 = Ray::new(Point3::new(0.0,0.0,2.5), Vector3::new(0.0,0.0,-1.0), f32::INFINITY);
-    assert!(sphere.intersect(&mut r1));
+    assert!(sphere.intersect(&mut r1).is_some());
 }

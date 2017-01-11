@@ -1,6 +1,5 @@
 extern crate cgmath;
 use self::cgmath::{Vector3, Point3};
-use std::sync::Arc;
 
 use material::Material;
 

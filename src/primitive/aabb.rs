@@ -3,8 +3,6 @@ use self::cgmath::{Vector3, Point3};
 
 use std::f32;
 
-use super::Primitive;
-
 use ray::Ray;
 
 #[derive(Debug)]
@@ -77,17 +75,11 @@ impl AABB {
     fn centre(&self) -> Point3<f32> {
         self.min + 0.5 * (self.max - self.min)
     }
-    fn bounds(&self) -> AABB {
-        AABB { min : self.min, max : self.max }
-    }
-    fn is_light(&self) -> bool {
-        false
-    }
 }
 
 #[test]
 fn intersections_aabb() {
-    let aabb = AABB::new().extent(Point3::new(1.0,1.0,1.0)).extent(Point3::new(-1.0,-1.0,3.0));
+    let aabb = AABB::new().extent(&Point3::new(1.0,1.0,1.0)).extent(&Point3::new(-1.0,-1.0,3.0));
 
     // Intersects forwards
     let mut r1 = Ray::new(Point3::new(0.0,0.0,0.0), Vector3::new(0.0,0.0,1.0), f32::INFINITY);
