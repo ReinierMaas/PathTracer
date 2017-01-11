@@ -4,7 +4,7 @@ extern crate sdl2;
 use self::cgmath::{Vector3, Point3};
 use self::cgmath::InnerSpace;
 use self::cgmath::ElementWise;
-use super::ray::Ray;
+use super::ray::{Ray, Intersection};
 use std::f32;
 use std::collections::HashSet;
 use self::sdl2::keyboard::Keycode;
@@ -158,24 +158,74 @@ impl Camera {
     /// sample a ray by shooting it through the scene
     pub fn sample(&self, ray: &mut Ray, depth: u32) -> Vector3<f32> {
         let mut sample = Vector3::new(1., 1., 1.);
+        let mut intersection = self.scene.intersect(ray);
+        let mut refraction_index = 1.; //Air
         for _ in 0..depth {
-            let intersection = self.scene.intersect(ray);
             match intersection {
                 None => {
                     sample = sample.mul_element_wise(self.scene.sample_skybox(ray.direction));
                     break;
                 }
-                Some(ref Intersection{normal, inside, material}) => {
+                Some(Intersection{normal, inside, material}) => {
                     match material {
                         &Material::Realistic { ref emissive, diffuse } => {
                             match emissive {
                                 &Emissive::Emissive => {
-                                    sample.mul_element_wise(diffuse);
+                                    sample = sample.mul_element_wise(diffuse);
                                     break;
                                 }
                                 &Emissive::NonEmissive { refl, refr } => {
-                                    let Closed01(r0) = rand::random::<Closed01<f32>>();
+                                    if refr == 0. {
+                                    } else {
+                                        let refracted_dir = {
+                                            let div = if inside { refr / refraction_index } else { refraction_index / refr };
+                                            let cosi = ray.direction.dot(normal);
+                                            let sin_t2 = div * div * (1. - cosi * cosi);
+                                            if sin_t2 <= 1. {
+                                                Some(div * ray.direction - (div * cosi + (1. - sin_t2).sqrt()) * normal)
+                                            } else {
+                                                None
+                                            }
+                                        };
+                                        if let Some(refracted_dir) = refracted_dir {
 
+                                            let reflection = {
+                                                let div = (refraction_index - refr) / (refraction_index + refr);
+                                                let r0 = div * div;
+                                                let cosi = -ray.direction.dot(normal);
+                                                r0 + (1. - r0) * (1. - cosi).powi(5)
+                                            };
+                                            let refraction = 1. - reflection;
+                                            let Closed01(r0) = rand::random::<Closed01<f32>>();
+                                            //println!("{:?} {:?}",r0, refraction);
+                                            if r0 < refraction {
+                                                // refraction ray
+                                                refraction_index = refr;
+                                                ray.origin = ray.origin + ray.distance * ray.direction;
+                                                ray.direction = refracted_dir;
+                                                ray.origin += f32::EPSILON * ray.direction;
+                                                ray.distance = f32::INFINITY;
+                                                intersection = self.scene.intersect(ray);
+                                                let absorbance = (Vector3::new(-1.,-1.,-1.) + diffuse) * ray.distance;
+                                                let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
+                                                sample = sample.mul_element_wise(transparency);
+                                            } else {
+                                                // relected ray
+                                                ray.origin = ray.origin + ray.distance * ray.direction;
+                                                ray.direction = ray.direction - 2. * ray.direction.dot(normal) * normal;
+                                                ray.origin += f32::EPSILON * ray.direction;
+                                                ray.distance = f32::INFINITY;
+                                                intersection = self.scene.intersect(ray);
+                                            }
+                                        } else {
+                                            // full internal relection
+                                            ray.origin = ray.origin + ray.distance * ray.direction;
+                                            ray.direction = ray.direction - 2. * ray.direction.dot(normal) * normal;
+                                            ray.origin += f32::EPSILON * ray.direction;
+                                            ray.distance = f32::INFINITY;
+                                            intersection = self.scene.intersect(ray);
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -187,6 +237,7 @@ impl Camera {
                             if tx != 1 {
                                 sample = 0.2 * sample;
                             }
+                            break;
                         }
                     }
                 }

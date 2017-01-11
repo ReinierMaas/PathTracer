@@ -88,7 +88,7 @@ impl Scene {
                 diffuse: Vector3::new(0.9,1.0,0.9),
                 emissive: Emissive::NonEmissive {
                     refl: 0.0,
-                    refr: 1.0,
+                    refr: 1.3,
                 },
             },
         });

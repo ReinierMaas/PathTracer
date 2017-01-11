@@ -70,6 +70,7 @@ impl Game {
     fn tick(&mut self, key_presses : &HashSet<Keycode>) {
         if self.camera.handle_input(&key_presses) {
             self.accumulator.clear();
+
         }
 
         self.accumulator.spp += 1;
@@ -78,7 +79,7 @@ impl Game {
             for x in 0..self.accumulator.width {
                 let mut ray = self.camera.generate(x,y);
                 let idx = x + y * self.accumulator.width;
-                self.accumulator.buf[idx] += self.camera.sample(&mut ray, 1);
+                self.accumulator.buf[idx] += self.camera.sample(&mut ray, 20);
             }
         }
 
@@ -157,7 +158,6 @@ fn main() {
             }
 
         }
-
         game.tick(&key_presses);
         game.render(&mut texture);
         renderer.copy(&texture, None, Some(Rect::new(0, 0, WIDTH as u32, HEIGHT as u32))).unwrap();
