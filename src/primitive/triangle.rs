@@ -71,6 +71,11 @@ impl Primitive for Triangle {
         if t < 0.0 {
             return false; // the intersection is behind the ray's origin
         }
+        ray.intersection = Some(Intersection{
+            normal: ((1. - u - v) * self.normal0 + u * self.normal1 + v * self.normal2).normalize(),
+            inside: true,
+            material: self.material.clone(),
+        });
         return true;
     }
     fn centre(&self) -> Point3<f32> {
