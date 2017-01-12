@@ -4,7 +4,6 @@ extern crate sdl2;
 extern crate num_cpus;
 extern crate spmc;
 extern crate scoped_threadpool;
-use scoped_threadpool::Pool;
 
 use std::io;
 use std::sync::mpsc;
@@ -96,13 +95,16 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     let mut accum = [Vector3::new(0.,0.,0.); WIDTH*HEIGHT];
-    let mut spp = 0.;
+    let mut spp: f32 = 0.;
 
 
     let scene = Scene::default_scene().expect("scene");
     let mut camera = Camera::new(WIDTH, HEIGHT, scene);
 
     let mut key_presses = HashSet::new();
+    let mut pool = scoped_threadpool::Pool::new(2);
+
+
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -123,41 +125,50 @@ fn main() {
 
         }
 
-        // TICK
-
         if camera.handle_input(&key_presses) {
             for mut x in &mut accum[..] {
                 *x = Vector3::new(0.,0.,0.);
             }
             spp = 0.;
         }
-        for y in 0..HEIGHT {
-            for x in 0..WIDTH {
-                let mut ray = camera.generate(x,y);
-                let idx = (x + y * WIDTH);
-                accum[idx] += camera.sample(&mut ray, 20);
-            }
-        }
+        pool.scoped(|scope| {
+            let camera = &camera;
+            println!("scoped!");
+            spp += 1.0;
+            scope.execute(move||{
 
-        spp += 1.0;
-
-        // RENDER
-        let scale = 1.0 / spp;
-        texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-            for y in 0..HEIGHT {
-                for x in 0..WIDTH {
-                    let offset: usize = y*pitch + x*3;
-                    let rgb = vec_to_rgb(scale*accum[x+y*WIDTH]);
-                    buffer[offset + 0] = rgb.x;
-                    buffer[offset + 1] = rgb.y;
-                    buffer[offset + 2] = rgb.z;
+                for y in 0..HEIGHT {
+                    for x in 0..WIDTH {
+                        let mut ray = camera.generate(x,y);
+                        let idx = (x + y * WIDTH);
+                        // THIS SHOULD NEVER WORK? TWO THREADS WRITE TO THE SAME MUTABLE REFERENCE
+                        accum[idx] = Vector3::new(0.,0.,0.);
+                        //accum[idx] += camera.sample(&mut ray, 20);
+                    }
                 }
-            }
-            }).expect("mutate texture");
-        //game.tick(&key_presses, &mut accum, &mut samples_per_pixel);
-        //game.render(&mut texture, &accum, samples_per_pixel);
-        renderer.copy(&texture, None, Some(Rect::new(0, 0, WIDTH as u32, HEIGHT as u32))).unwrap();
-        renderer.present();
+            });
+
+
+
+            // RENDER
+            let scale: f32 = 1.0 / spp;
+            texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
+                for y in 0..HEIGHT {
+                    for x in 0..WIDTH {
+                        let offset: usize = y*pitch + x*3;
+                        let rgb = vec_to_rgb(scale*accum[x+y*WIDTH]);
+                        buffer[offset + 0] = rgb.x;
+                        buffer[offset + 1] = rgb.y;
+                        buffer[offset + 2] = rgb.z;
+                    }
+                }
+                }).expect("mutate texture");
+            //game.tick(&key_presses, &mut accum, &mut samples_per_pixel);
+            //game.render(&mut texture, &accum, samples_per_pixel);
+            renderer.copy(&texture, None, Some(Rect::new(0, 0, WIDTH as u32, HEIGHT as u32))).unwrap();
+            renderer.present();
+        });
+        println!("lmao");
     }
 }
 
