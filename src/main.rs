@@ -3,9 +3,12 @@ extern crate cgmath;
 extern crate sdl2;
 extern crate num_cpus;
 extern crate spmc;
+extern crate scoped_threadpool;
+use scoped_threadpool::Pool;
 
 use std::io;
 use std::sync::mpsc;
+use std::sync::Mutex;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
 use sdl2::event::Event;
@@ -26,138 +29,41 @@ mod bvh;
 use camera::Camera;
 use scene::Scene;
 
-struct Accumulator {
-    spp: u32,
-    buf: Vec<Vector3<f32>>,
-    width: usize,
-    height: usize,
+const WIDTH: usize = 800;
+const HEIGHT: usize = 600;
+
+// https://gist.github.com/jaredwinick/5073432
+fn interleave_morton(x: u32, y: u32) -> u32 {
+    let B = [0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF];
+    let S = [1, 2, 4, 8];
+
+    let x = (x | (x << S[3])) & B[3];
+    let x = (x | (x << S[2])) & B[2];
+    let x = (x | (x << S[1])) & B[1];
+    let x = (x | (x << S[0])) & B[0];
+    let y = (y | (y << S[3])) & B[3];
+    let y = (y | (y << S[2])) & B[2];
+    let y = (y | (y << S[1])) & B[1];
+    let y = (y | (y << S[0])) & B[0];
+    let z = x | (y << 1);
+    z
 }
 
-impl Accumulator {
-    pub fn new(width: usize, height: usize) -> Accumulator {
-        print!("Setting up accumulator...\n");
-        let mut accum = Accumulator {
-           buf: vec![Vector3::new(0.0,0.0,0.0); (width*height) as usize],
-           spp: 0,
-           width: width,
-           height: height,
-        };
-        accum.clear();
-        print!("Finished setting up accumulator...\n");
-        accum
-    }
-    pub fn clear(&mut self) {
-        for i in 0..self.buf.len() {
-            self.buf[i] = Vector3::new(0.0,0.0,0.0);
-        }
-        self.spp = 0;
-    }
-}
+fn deinterleave_morton(z: u32) -> (u32, u32) {
+      let x = z & 0x55555555;
+      let x = (x | (x >> 1)) & 0x33333333;
+      let x = (x | (x >> 2)) & 0x0F0F0F0F;
+      let x = (x | (x >> 4)) & 0x00FF00FF;
+      let x = (x | (x >> 8)) & 0x0000FFFF;
 
-struct Game<'a> {
-    accumulator: Accumulator,
-    camera: Camera,
-    workers: Vec<Option<thread::JoinHandle<()>>>,
-    tx: spmc::Sender<WorkerMsg<'a>>,
-    rx: mpsc::Receiver<GameMsg<'a>>,
-}
+      let y = (z >> 1) & 0x55555555;
+      let y = (y | (y >> 1)) & 0x33333333;
+      let y = (y | (y >> 2)) & 0x0F0F0F0F;
+      let y = (y | (y >> 4)) & 0x00FF00FF;
+      let y = (y | (y >> 8)) & 0x0000FFFF;
 
-impl <'a> Drop for Game<'a> {
-    fn drop (&mut self) {
-        for handle in &mut self.workers {
-            handle.take().unwrap().join().unwrap();
-        }
-    }
-}
+      (x,y)
 
-enum GameMsg<'a> {
-    Traced(&'a mut [f32])
-}
-
-enum WorkerMsg<'a> {
-    Quit,
-    Trace(&'a mut [f32]),
-}
-
-impl <'a> Game<'a> {
-    fn worker(tx : mpsc::Sender<GameMsg>, rx : spmc::Receiver<WorkerMsg>) {
-        loop {
-            match rx.recv().unwrap() {
-                WorkerMsg::Quit => break,
-                WorkerMsg::Trace(accum) => {
-                }
-            }
-        }
-    }
-
-    fn new(width: usize, height: usize, num_workers: usize) -> Result<Game<'a>, io::Error> {
-        print!("Setting up game...\n");
-        let scene = try!(Scene::default_scene());
-        let accumulator = Accumulator::new(width, height);
-        let camera = Camera::new(width, height, scene);
-
-        let mut workers = Vec::new();
-
-        let (game_tx, worker_rx) = spmc::channel();
-
-        let (worker_tx, game_rx) = mpsc::channel();
-
-        for c in 0..num_workers {
-            let rx = worker_rx.clone();
-            let tx = worker_tx.clone();
-            workers.push(Some(thread::spawn(move || {
-                loop {
-                }
-                Game::worker(tx, rx)
-            })));
-        }
-        let game = Game {
-            accumulator: accumulator,
-            camera: camera,
-            workers: workers,
-            rx: game_rx,
-            tx: game_tx,
-        };
-        print!("Finished setting up game...\n");
-        Ok(game)
-    }
-
-    fn tick(&mut self, key_presses : &HashSet<Keycode>) {
-        if self.camera.handle_input(&key_presses) {
-            self.accumulator.clear();
-
-        }
-
-        self.accumulator.spp += 1;
-
-        for y in 0..self.accumulator.height {
-            for x in 0..self.accumulator.width {
-                let mut ray = self.camera.generate(x,y);
-                let idx = x + y * self.accumulator.width;
-                self.accumulator.buf[idx] += self.camera.sample(&mut ray, 20);
-            }
-        }
-
-
-
-
-    }
-    fn render(&self, texture : &mut sdl2::render::Texture) {
-        let width = self.accumulator.width;
-        let height = self.accumulator.height;
-        let scale = 1.0 / (self.accumulator.spp as f32);
-        texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-            for y in 0..height {
-                for x in 0..width {
-                    let offset: usize = y*pitch + x*3;
-                    let rgb = vec_to_rgb(scale*self.accumulator.buf[x+y*width]);
-                    buffer[offset + 0] = rgb.x;
-                    buffer[offset + 1] = rgb.y;
-                    buffer[offset + 2] = rgb.z;
-                }
-            }
-            }).expect("mutate texture");
-    }
 }
 
 fn vec_to_rgb(vec : Vector3<f32>) -> Vector3<u8> {
@@ -189,11 +95,12 @@ fn main() {
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
+    let mut accum = [Vector3::new(0.,0.,0.); WIDTH*HEIGHT];
+    let mut spp = 0.;
 
-    let mut game = Game::new(WIDTH, HEIGHT, 0).unwrap();
 
-
-
+    let scene = Scene::default_scene().expect("scene");
+    let mut camera = Camera::new(WIDTH, HEIGHT, scene);
 
     let mut key_presses = HashSet::new();
     'running: loop {
@@ -215,8 +122,40 @@ fn main() {
             }
 
         }
-        game.tick(&key_presses);
-        game.render(&mut texture);
+
+        // TICK
+
+        if camera.handle_input(&key_presses) {
+            for mut x in &mut accum[..] {
+                *x = Vector3::new(0.,0.,0.);
+            }
+            spp = 0.;
+        }
+        for y in 0..HEIGHT {
+            for x in 0..WIDTH {
+                let mut ray = camera.generate(x,y);
+                let idx = (x + y * WIDTH);
+                accum[idx] += camera.sample(&mut ray, 20);
+            }
+        }
+
+        spp += 1.0;
+
+        // RENDER
+        let scale = 1.0 / spp;
+        texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
+            for y in 0..HEIGHT {
+                for x in 0..WIDTH {
+                    let offset: usize = y*pitch + x*3;
+                    let rgb = vec_to_rgb(scale*accum[x+y*WIDTH]);
+                    buffer[offset + 0] = rgb.x;
+                    buffer[offset + 1] = rgb.y;
+                    buffer[offset + 2] = rgb.z;
+                }
+            }
+            }).expect("mutate texture");
+        //game.tick(&key_presses, &mut accum, &mut samples_per_pixel);
+        //game.render(&mut texture, &accum, samples_per_pixel);
         renderer.copy(&texture, None, Some(Rect::new(0, 0, WIDTH as u32, HEIGHT as u32))).unwrap();
         renderer.present();
     }
