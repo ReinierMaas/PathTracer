@@ -94,15 +94,17 @@ fn main() {
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
-    let mut accum = [Vector3::new(0.,0.,0.); WIDTH*HEIGHT];
+    let mut accum = vec![Vector3::new(0.,0.,0.); WIDTH*HEIGHT];
     let mut spp: f32 = 0.;
 
 
     let scene = Scene::default_scene().expect("scene");
     let mut camera = Camera::new(WIDTH, HEIGHT, scene);
 
+
+    let num_cpus = num_cpus::get();
     let mut key_presses = HashSet::new();
-    let mut pool = scoped_threadpool::Pool::new(2);
+    let mut pool = scoped_threadpool::Pool::new(num_cpus as u32);
 
 
     'running: loop {
@@ -131,44 +133,39 @@ fn main() {
             }
             spp = 0.;
         }
-        pool.scoped(|scope| {
-            let camera = &camera;
-            println!("scoped!");
-            spp += 1.0;
-            scope.execute(move||{
+        spp += 1.0;
 
-                for y in 0..HEIGHT {
-                    for x in 0..WIDTH {
-                        let mut ray = camera.generate(x,y);
-                        let idx = (x + y * WIDTH);
-                        // THIS SHOULD NEVER WORK? TWO THREADS WRITE TO THE SAME MUTABLE REFERENCE
-                        accum[idx] = Vector3::new(0.,0.,0.);
-                        //accum[idx] += camera.sample(&mut ray, 20);
-                    }
+        let scale: f32 = 1.0 / spp;
+        texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
+            let camera = &camera;
+            let accum = &mut accum;
+            pool.scoped(|scope| {
+                let mut accum_iter = accum.chunks_mut((WIDTH*HEIGHT)/num_cpus);
+                let mut fb_iter = buffer.chunks_mut((WIDTH*HEIGHT*3)/num_cpus);
+                for (core_id, (mut chunk, mut chunk2)) in &mut accum_iter.zip(fb_iter).enumerate() {
+                    scope.execute(move||{
+                        let start_y = core_id * (HEIGHT / num_cpus);
+                        for y in 0.. HEIGHT / num_cpus {
+                            for x in 0..WIDTH {
+                                let mut ray = camera.generate(x,y+start_y);
+                                let idx = (x + y * WIDTH);
+                                chunk[idx] += camera.sample(&mut ray, 20);
+                                let offset = y*pitch + x*3;
+                                let rgb = vec_to_rgb(scale*chunk[idx]);
+                                chunk2[offset + 0] = rgb.x;
+                                chunk2[offset + 1] = rgb.y;
+                                chunk2[offset + 2] = rgb.z;
+
+                            }
+                        }
+                    });
                 }
             });
-
-
-
-            // RENDER
-            let scale: f32 = 1.0 / spp;
-            texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-                for y in 0..HEIGHT {
-                    for x in 0..WIDTH {
-                        let offset: usize = y*pitch + x*3;
-                        let rgb = vec_to_rgb(scale*accum[x+y*WIDTH]);
-                        buffer[offset + 0] = rgb.x;
-                        buffer[offset + 1] = rgb.y;
-                        buffer[offset + 2] = rgb.z;
-                    }
-                }
-                }).expect("mutate texture");
-            //game.tick(&key_presses, &mut accum, &mut samples_per_pixel);
-            //game.render(&mut texture, &accum, samples_per_pixel);
-            renderer.copy(&texture, None, Some(Rect::new(0, 0, WIDTH as u32, HEIGHT as u32))).unwrap();
-            renderer.present();
-        });
-        println!("lmao");
+        }).unwrap();
+        //game.tick(&key_presses, &mut accum, &mut samples_per_pixel);
+        //game.render(&mut texture, &accum, samples_per_pixel);
+        renderer.copy(&texture, None, Some(Rect::new(0, 0, WIDTH as u32, HEIGHT as u32))).unwrap();
+        renderer.present();
     }
 }
 
