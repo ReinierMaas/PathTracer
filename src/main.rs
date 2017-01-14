@@ -148,7 +148,7 @@ fn main() {
                         for y in 0.. HEIGHT / num_cpus {
                             for x in 0..WIDTH {
                                 let mut ray = camera.generate(x,y+start_y);
-                                let idx = (x + y * WIDTH);
+                                let idx = x + y * WIDTH;
                                 chunk[idx] += camera.sample(&mut ray, 20);
                                 let offset = y*pitch + x*3;
                                 let rgb = vec_to_rgb(scale*chunk[idx]);

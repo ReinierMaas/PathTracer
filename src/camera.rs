@@ -167,8 +167,40 @@ impl Camera {
                 }
                 Some(Intersection{normal, inside, material}) => {
                     match material {
-                        &Material::Diffuse { speculaty, color} =>{
-
+                        &Material::Diffuse { speculaty, color} => {
+                            if speculaty > 0. {
+                                let Closed01(r0) = rand::random::<Closed01<f32>>();
+                                if r0 < speculaty {
+                                    // Specular sampling
+                                    sample = sample.mul_element_wise(color);
+                                    ray.origin = ray.origin + ray.distance * ray.direction;
+                                    ray.direction = ray.direction - 2. * ray.direction.dot(normal) * normal;
+                                    ray.origin += f32::EPSILON * ray.direction; // advance ray
+                                    ray.distance = f32::INFINITY; // set length
+                                    intersection = self.scene.intersect(ray);
+                                    continue
+                                }
+                            }
+                            // Diffuse sampling
+                            let diffuse_dir = {
+                                let Closed01(r0) = rand::random::<Closed01<f32>>();
+                                let r = (1. - r0 * r0).sqrt();
+                                let Closed01(r1) = rand::random::<Closed01<f32>>();
+                                let phi = 2. * f32::consts::PI * r1;
+                                let diffuse_dir = Vector3::new(phi.cos() * r, phi.sin() * r, r0);
+                                if diffuse_dir.dot(normal) < 0. {
+                                    -1. * diffuse_dir
+                                } else {
+                                    diffuse_dir
+                                }
+                            };
+                            sample = sample.mul_element_wise(diffuse_dir.dot(normal) * color);
+                            ray.origin = ray.origin + ray.distance * ray.direction;
+                            ray.direction = diffuse_dir;
+                            ray.origin += f32::EPSILON * ray.direction; // advance ray
+                            ray.distance = f32::INFINITY; // set length
+                            intersection = self.scene.intersect(ray);
+                            continue
                         }
                         &Material::Dielectic { refraction_index, color } => {
                             let refracted_dir = {
@@ -191,25 +223,39 @@ impl Camera {
                                 let refraction = 1. - reflection;
                                 let Closed01(r0) = rand::random::<Closed01<f32>>();
                                 if r0 < refraction {
-                                    // refraction ray
+                                    // Refraction sampling
                                     prev_refraction_index = refraction_index;
                                     ray.origin = ray.origin + ray.distance * ray.direction;
                                     ray.direction = refracted_dir;
                                     ray.origin += f32::EPSILON * ray.direction; // advance ray
-                                    ray.distance = f32::INFINITY;
+                                    ray.distance = f32::INFINITY; // set length
                                     intersection = self.scene.intersect(ray);
                                     let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
                                     let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
                                     sample = sample.mul_element_wise(transparency);
                                     continue
+                                } else {
+                                    // Reflected ray
+                                    sample = sample.mul_element_wise(color);
+                                    ray.origin = ray.origin + ray.distance * ray.direction;
+                                    ray.direction = ray.direction - 2. * ray.direction.dot(normal) * normal;
+                                    ray.origin += f32::EPSILON * ray.direction; // advance ray
+                                    ray.distance = f32::INFINITY; // set length
+                                    intersection = self.scene.intersect(ray);
+                                    continue
                                 }
+                            } else {
+                                // Full internal reflection
+                                ray.origin = ray.origin + ray.distance * ray.direction;
+                                ray.direction = ray.direction - 2. * ray.direction.dot(normal) * normal;
+                                ray.origin += f32::EPSILON * ray.direction; // advance ray
+                                ray.distance = f32::INFINITY; // set length
+                                intersection = self.scene.intersect(ray);
+                                let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
+                                let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
+                                sample = sample.mul_element_wise(transparency);
+                                continue
                             }
-                            // full internal relection or reflected ray
-                            ray.origin = ray.origin + ray.distance * ray.direction;
-                            ray.direction = ray.direction - 2. * ray.direction.dot(normal) * normal;
-                            ray.origin += f32::EPSILON * ray.direction;
-                            ray.distance = f32::INFINITY;
-                            intersection = self.scene.intersect(ray);
                         }
                         &Material::Emissive { color } => {
                             sample = sample.mul_element_wise(color);
