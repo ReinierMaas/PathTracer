@@ -83,7 +83,7 @@ impl Scene {
             radius: 0.3,
             material: Material::Dielectic {
                 refraction_index: 1.3,
-                color: Vector3::new(0.9,1.0,0.9),
+                color: Vector3::new(0.1,1.0,0.1),
             },
         });
 

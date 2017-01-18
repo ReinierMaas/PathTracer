@@ -228,20 +228,21 @@ impl Camera {
                                     current_refraction_index = n2;
                                     ray.reset(intersection_point, refracted_dir, f32::INFINITY);
                                     intersection = self.scene.intersect(ray);
-                                    //if n2 != 1. {
-                                    //    let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
-                                    //    let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
-                                    //    sample = sample.mul_element_wise(transparency);
-                                    //}
+                                    if n2 != 1. {
+                                        let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
+                                        let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
+                                        sample = sample.mul_element_wise(transparency);
+                                    }
                                     continue
                                 } else {
                                     // Reflected ray
                                     let reflected_dir = ray.direction - 2. * ray.direction.dot(normal) * normal;
                                     ray.reset(intersection_point, reflected_dir, f32::INFINITY);
                                     intersection = self.scene.intersect(ray);
-                                    //if n2 != 1. {
-                                    //    sample = sample.mul_element_wise(color);
-                                    //} else {
+                                    if n2 != 1. {
+                                        sample = sample.mul_element_wise(color);
+                                    }
+                                    //else {
                                     //    let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
                                     //    let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
                                     //    sample = sample.mul_element_wise(transparency);
