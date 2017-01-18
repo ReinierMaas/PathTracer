@@ -158,7 +158,7 @@ impl Camera {
     pub fn sample(&self, ray: &mut Ray, depth: u32) -> Vector3<f32> {
         let mut sample = Vector3::new(1., 1., 1.);
         let mut intersection = self.scene.intersect(ray);
-        let mut prev_refraction_index = 1.; //Air
+        let mut current_refraction_index = 1.; //Air
         for _ in 0..depth {
             match intersection {
                 None => {
@@ -166,6 +166,7 @@ impl Camera {
                     break;
                 }
                 Some(Intersection{normal, inside, material}) => {
+                    let intersection_point = ray.intersection();
                     match material {
                         &Material::Diffuse { speculaty, color} => {
                             if speculaty > 0. {
@@ -173,10 +174,8 @@ impl Camera {
                                 if r0 < speculaty {
                                     // Specular sampling
                                     sample = sample.mul_element_wise(color);
-                                    ray.origin = ray.origin + ray.distance * ray.direction;
-                                    ray.direction = ray.direction - 2. * ray.direction.dot(normal) * normal;
-                                    ray.origin += f32::EPSILON * ray.direction; // advance ray
-                                    ray.distance = f32::INFINITY; // set length
+                                    let reflected_dir = ray.direction - 2. * ray.direction.dot(normal) * normal;
+                                    ray.reset(intersection_point, reflected_dir, f32::INFINITY);
                                     intersection = self.scene.intersect(ray);
                                     continue
                                 }
@@ -195,16 +194,17 @@ impl Camera {
                                 }
                             };
                             sample = sample.mul_element_wise(diffuse_dir.dot(normal) * color);
-                            ray.origin = ray.origin + ray.distance * ray.direction;
-                            ray.direction = diffuse_dir;
-                            ray.origin += f32::EPSILON * ray.direction; // advance ray
-                            ray.distance = f32::INFINITY; // set length
+                            ray.reset(intersection_point, diffuse_dir, f32::INFINITY);
                             intersection = self.scene.intersect(ray);
                             continue
                         }
                         &Material::Dielectic { refraction_index, color } => {
+                            let n1 = current_refraction_index;
+                            let mut normal = normal;
+                            let n2 = if n1 != 1. { normal = -normal; 1. } else { refraction_index };
                             let refracted_dir = {
-                                let div = if inside { refraction_index / prev_refraction_index } else { prev_refraction_index / refraction_index };
+                                // Refract
+                                let div = n1 / n2;
                                 let cosi = ray.direction.dot(normal);
                                 let sin_t2 = div * div * (1. - cosi * cosi);
                                 if sin_t2 <= 1. {
@@ -215,7 +215,8 @@ impl Camera {
                             };
                             if let Some(refracted_dir) = refracted_dir {
                                 let reflection = {
-                                    let div = (prev_refraction_index - refraction_index) / (prev_refraction_index + refraction_index);
+                                    // Schlick
+                                    let div = (n1 - n2) / (n1 + n2);
                                     let r0 = div * div;
                                     let cosi = -ray.direction.dot(normal);
                                     r0 + (1. - r0) * (1. - cosi).powi(5)
@@ -224,36 +225,37 @@ impl Camera {
                                 let Closed01(r0) = rand::random::<Closed01<f32>>();
                                 if r0 < refraction {
                                     // Refraction sampling
-                                    prev_refraction_index = refraction_index;
-                                    ray.origin = ray.origin + ray.distance * ray.direction;
-                                    ray.direction = refracted_dir;
-                                    ray.origin += f32::EPSILON * ray.direction; // advance ray
-                                    ray.distance = f32::INFINITY; // set length
+                                    current_refraction_index = n2;
+                                    ray.reset(intersection_point, refracted_dir, f32::INFINITY);
                                     intersection = self.scene.intersect(ray);
-                                    let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
-                                    let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
-                                    sample = sample.mul_element_wise(transparency);
+                                    //if n2 != 1. {
+                                    //    let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
+                                    //    let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
+                                    //    sample = sample.mul_element_wise(transparency);
+                                    //}
                                     continue
                                 } else {
                                     // Reflected ray
-                                    sample = sample.mul_element_wise(color);
-                                    ray.origin = ray.origin + ray.distance * ray.direction;
-                                    ray.direction = ray.direction - 2. * ray.direction.dot(normal) * normal;
-                                    ray.origin += f32::EPSILON * ray.direction; // advance ray
-                                    ray.distance = f32::INFINITY; // set length
+                                    let reflected_dir = ray.direction - 2. * ray.direction.dot(normal) * normal;
+                                    ray.reset(intersection_point, reflected_dir, f32::INFINITY);
                                     intersection = self.scene.intersect(ray);
+                                    //if n2 != 1. {
+                                    //    sample = sample.mul_element_wise(color);
+                                    //} else {
+                                    //    let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
+                                    //    let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
+                                    //    sample = sample.mul_element_wise(transparency);
+                                    //}
                                     continue
                                 }
                             } else {
                                 // Full internal reflection
-                                ray.origin = ray.origin + ray.distance * ray.direction;
-                                ray.direction = ray.direction - 2. * ray.direction.dot(normal) * normal;
-                                ray.origin += f32::EPSILON * ray.direction; // advance ray
-                                ray.distance = f32::INFINITY; // set length
+                                let reflected_dir = ray.direction - 2. * ray.direction.dot(normal) * normal;
+                                ray.reset(intersection_point, reflected_dir, f32::INFINITY);
                                 intersection = self.scene.intersect(ray);
-                                let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
-                                let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
-                                sample = sample.mul_element_wise(transparency);
+                                //let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
+                                //let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
+                                //sample = sample.mul_element_wise(transparency);
                                 continue
                             }
                         }
