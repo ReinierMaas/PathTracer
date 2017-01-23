@@ -12,9 +12,10 @@ use self::rand::Closed01;
 
 use scene::Scene;
 use material::Material;
+use primitive::Primitive;
 
 #[derive(Debug)]
-pub struct Camera {
+pub struct Camera<T: Primitive> {
     origin: Point3<f32>,
     target: Point3<f32>,
     focal_distance: f32,
@@ -30,11 +31,11 @@ pub struct Camera {
     width: usize,
     height: usize,
     lens_size: f32,
-    scene: Scene,
+    scene: Scene<T>,
 }
 
-impl Camera {
-    pub fn new(width: usize, height: usize, scene: Scene) -> Camera {
+impl<T: Primitive> Camera<T> {
+    pub fn new(width: usize, height: usize, scene: Scene<T>) -> Camera<T> {
         let mut camera = Camera {
             width: width,
             height: height,

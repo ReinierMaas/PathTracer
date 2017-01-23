@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 
 extern crate cgmath;
 extern crate sdl2;
@@ -5,14 +6,10 @@ extern crate num_cpus;
 extern crate spmc;
 extern crate scoped_threadpool;
 
-use std::io;
-use std::sync::mpsc;
-use std::sync::Mutex;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use std::thread;
 
 use std::collections::HashSet;
 
@@ -27,23 +24,24 @@ mod bvh;
 
 use camera::Camera;
 use scene::Scene;
+use primitive::sphere::Sphere;
 
-const WIDTH: usize = 800;
-const HEIGHT: usize = 600;
+//const WIDTH: usize = 800;
+//const HEIGHT: usize = 600;
 
 // https://gist.github.com/jaredwinick/5073432
 fn interleave_morton(x: u32, y: u32) -> u32 {
-    let B = [0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF];
-    let S = [1, 2, 4, 8];
+    let b = [0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF];
+    let s = [1, 2, 4, 8];
 
-    let x = (x | (x << S[3])) & B[3];
-    let x = (x | (x << S[2])) & B[2];
-    let x = (x | (x << S[1])) & B[1];
-    let x = (x | (x << S[0])) & B[0];
-    let y = (y | (y << S[3])) & B[3];
-    let y = (y | (y << S[2])) & B[2];
-    let y = (y | (y << S[1])) & B[1];
-    let y = (y | (y << S[0])) & B[0];
+    let x = (x | (x << s[3])) & b[3];
+    let x = (x | (x << s[2])) & b[2];
+    let x = (x | (x << s[1])) & b[1];
+    let x = (x | (x << s[0])) & b[0];
+    let y = (y | (y << s[3])) & b[3];
+    let y = (y | (y << s[2])) & b[2];
+    let y = (y | (y << s[1])) & b[1];
+    let y = (y | (y << s[0])) & b[0];
     let z = x | (y << 1);
     z
 }
@@ -98,7 +96,7 @@ fn main() {
     let mut spp: f32 = 0.;
 
 
-    let scene = Scene::default_scene().expect("scene");
+    let scene = Scene::<Sphere>::default_scene().expect("scene");
     let mut camera = Camera::new(WIDTH, HEIGHT, scene);
 
 
@@ -140,8 +138,8 @@ fn main() {
             let camera = &camera;
             let accum = &mut accum;
             pool.scoped(|scope| {
-                let mut accum_iter = accum.chunks_mut((WIDTH*HEIGHT)/num_cpus);
-                let mut fb_iter = buffer.chunks_mut((WIDTH*HEIGHT*3)/num_cpus);
+                let accum_iter = accum.chunks_mut((WIDTH*HEIGHT)/num_cpus);
+                let fb_iter = buffer.chunks_mut((WIDTH*HEIGHT*3)/num_cpus);
                 for (core_id, (mut chunk, mut chunk2)) in &mut accum_iter.zip(fb_iter).enumerate() {
                     scope.execute(move||{
                         let start_y = core_id * (HEIGHT / num_cpus);

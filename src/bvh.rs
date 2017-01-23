@@ -6,6 +6,7 @@ use primitive::aabb::AABB;
 use primitive::triangle::Triangle;
 use primitive::sphere::Sphere;
 
+use ray::{Ray,Intersection};
 
 #[derive(Debug)]
 struct BVHNode {
@@ -15,9 +16,8 @@ struct BVHNode {
 }
 
 #[derive(Debug)]
-pub struct BVH {
-    triangles: Vec<Triangle>,
-    spheres: Vec<Sphere>,
+pub struct BVH<T: Primitive> {
+    objects: Vec<T>,
     indices: Vec<usize>,
     bounds: Vec<AABB>,
     centres: Vec<Point3<f32>>,
@@ -30,58 +30,45 @@ enum Index {
     Sphere(usize),
 }
 
-impl BVH {
-    pub fn new(triangles: Vec<Triangle>, spheres: Vec<Sphere>) -> BVH {
-        let total = triangles.len() + spheres.len();
-        let mut indices = Vec::with_capacity(total);
-        let mut bounds = Vec::with_capacity(total);
-        let mut centres = Vec::with_capacity(total);
-        let mut lights = Vec::with_capacity(total);
+impl<T: Primitive> BVH<T> {
+    pub fn new(objects: Vec<T>) -> BVH<T> {
+        let len = objects.len();
+        let mut indices = Vec::with_capacity(len);
+        let mut bounds = Vec::with_capacity(len);
+        let mut centres = Vec::with_capacity(len);
+        let mut lights = Vec::with_capacity(len);
         let mut count = 0;
-        for triangle in &triangles {
+        for object in &objects {
             indices.push(count);
-            bounds.push(triangle.bounds());
-            centres.push(triangle.centre());
-            if triangle.is_light() {
+            bounds.push(object.bounds());
+            centres.push(object.centre());
+            if object.is_light() {
                 lights.push(count);
             }
             count += 1;
         }
-        for sphere in &spheres {
-            indices.push(count);
-            bounds.push(sphere.bounds());
-            centres.push(sphere.centre());
-            if sphere.is_light() {
-                lights.push(count);
-            }
-            count += 1;
-        }
-        let mut bvh_nodes = Vec::with_capacity(total);
+        let mut bvh_nodes = Vec::with_capacity(len);
         bvh_nodes.push(BVHNode {
             bounds: bounds.iter().fold(AABB::new(), |sum, val| sum.combine(val)),
             left_first: 0,
-            count: total }
+            count: len }
         );
         let mut bvh = BVH {
-            triangles: triangles,
-            spheres: spheres,
+            objects: objects,
             indices: indices,
             bounds: bounds,
             centres: centres,
             lights: lights,
             bvh_nodes: bvh_nodes
         };
-        bvh.subdivide(0);
+        //bvh.subdivide(0);
         bvh
     }
     fn subdivide(&mut self, node_index: usize) {
-        if self.bvh_nodes[node_index].count < 3 {
-            return;
-        }
-        if self.partition(node_index) {
+        if self.bvh_nodes[node_index].count > 2 && self.partition(node_index) {
             let left = self.bvh_nodes[node_index].left_first;
-            self.subdivide(left);
-            self.subdivide(left + 1);
+            //self.subdivide(left);
+            //self.subdivide(left + 1);
         }
     }
     fn partition(&mut self, node_index: usize) -> bool {
@@ -134,5 +121,38 @@ impl BVH {
             BVHNode { bounds : right_bound, left_first : pivot_index, count : count - left_count }
         );
         true
+    }
+    pub fn intersect(&self, ray: &mut Ray) -> Option<Intersection> {
+        let mut closest_intersection = None;
+        let mut node_stack = Vec::new();
+        node_stack.push(0); // root node
+        while let Some(node_index) = node_stack.pop() {
+            if self.bvh_nodes[node_index].count != 0 {
+                // leaf node
+                for index in self.bvh_nodes[node_index].left_first..self.bvh_nodes[node_index].count {
+                    let object = &self.objects[self.indices[index]];
+                    if let Some(intersection) = object.intersect(ray) {
+                        closest_intersection = Some(intersection);
+                    }
+                }
+            } else {
+                // internal node
+                let tl = self.bvh_nodes[self.bvh_nodes[node_index].left_first].bounds.intersect(ray);
+                let tr = self.bvh_nodes[self.bvh_nodes[node_index].left_first + 1].bounds.intersect(ray);
+                match (tl,tr) {
+                    (Some((tlmin, _)), Some((trmin, _))) => if tlmin <= trmin {
+                            node_stack.push(self.bvh_nodes[node_index].left_first);
+                            node_stack.push(self.bvh_nodes[node_index].left_first + 1);
+                        } else {
+                            node_stack.push(self.bvh_nodes[node_index].left_first + 1);
+                            node_stack.push(self.bvh_nodes[node_index].left_first);
+                        },
+                    (Some(_), None) => node_stack.push(self.bvh_nodes[node_index].left_first),
+                    (None, Some(_)) => node_stack.push(self.bvh_nodes[node_index].left_first + 1),
+                    (None, None) => {},
+                }
+            }
+        }
+        closest_intersection
     }
 }

@@ -40,7 +40,7 @@ impl AABB {
         self.max - self.min
     }
 
-    pub fn intersect(&self, ray : & mut Ray) -> bool{
+    pub fn intersect(&self, ray : & mut Ray) -> Option<(f32,f32)> {
         let rcp_dir : Vector3<f32> = 1.0 / ray.direction;
         let min = self.min - ray.origin;
         let max = self.max - ray.origin;
@@ -57,20 +57,20 @@ impl AABB {
 
         if tmax < 0.0 {
             // ray intersects aabb but behind us
-            return false;
+            return None;
         }
         if tmax < tmin {
             // ray doesn't intersect aabb
-            return false;
+            return None;
         }
         if tmin < 0.0 {
             // ray originates inside aabb
             // hit is at the inside at tmax
-            return true;
+            return Some((tmin, tmax));
         }
         // ray originates outside aabb
         // hit is at the outside at tmin
-        return true;
+        return Some((tmin, tmax));
     }
     fn centre(&self) -> Point3<f32> {
         self.min + 0.5 * (self.max - self.min)

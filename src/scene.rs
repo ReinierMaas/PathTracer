@@ -13,41 +13,30 @@ use primitive::sphere::Sphere;
 use material::Material;
 
 #[derive(Debug)]
-pub struct Scene {
-    bvh: BVH,
-    spheres: Vec<Sphere>,
+pub struct Scene<T: Primitive> {
+    bvh: BVH<T>,
     skybox: Vec<f32>,
 }
 
-impl Scene {
+impl<T: Primitive> Scene<T> {
     // creates a new default scene
-    fn new() -> Result<Scene, io::Error> {
-        let spheres = Vec::new();
-        let skybox = try!(Scene::read_skybox());
+    fn new(objects: Vec<T>) -> Result<Scene<T>, io::Error> {
+        let skybox = try!(Scene::<T>::read_skybox());
         let scene = Scene {
-            bvh: BVH::new(Vec::new(), Vec::new()),
-            spheres: spheres,
+            bvh: BVH::new(objects),
             skybox: skybox,
         };
         Ok(scene)
     }
 
     pub fn intersect(&self, ray : & mut Ray) -> Option<Intersection> {
-        let mut intersection = None;
-        for sphere in &self.spheres {
-            match sphere.intersect(ray) {
-                None => (),
-                Some(x) => intersection = Some(x),
-            }
-        }
-        intersection
+        self.bvh.intersect(ray)
     }
 
-    pub fn default_scene() -> Result<Scene, io::Error> {
+    pub fn default_scene() -> Result<Scene<Sphere>, io::Error> {
         print!("Setting up default_scene\n");
-        let mut scene = try!(Scene::new());
-
-        scene.add(Sphere::light(Point3::new(2.7,1.7,-0.5), 0.3));
+        let mut spheres = Vec::new();
+        spheres.push(Sphere::light(Point3::new(2.7,1.7,-0.5), 0.3));
 
         let bottom_plane = Sphere {
             position: Point3::new(0.0,-4999.0,0.0),
@@ -67,9 +56,9 @@ impl Scene {
             },
         };
 
-        scene.add(bottom_plane);
-        //scene.add(back_plane);
-        scene.add(Sphere {
+        spheres.push(bottom_plane);
+        //scene.push(back_plane);
+        spheres.push(Sphere {
             position: Point3::new(-0.8, 0.0, -2.0),
             radius: 0.3,
             material: Material::Diffuse {
@@ -78,7 +67,7 @@ impl Scene {
             },
         });
 
-        scene.add(Sphere {
+        spheres.push(Sphere {
             position: Point3::new(0.0,0.0,-2.0),
             radius: 0.3,
             material: Material::Dielectic {
@@ -87,7 +76,7 @@ impl Scene {
             },
         });
 
-        scene.add(Sphere {
+        spheres.push(Sphere {
             position: Point3::new(0.8,0.0,-2.0),
             radius: 0.3,
             material: Material::Diffuse {
@@ -96,7 +85,7 @@ impl Scene {
             },
         });
 
-        scene.add(Sphere {
+        spheres.push(Sphere {
             position: Point3::new(-0.8,-0.8,-2.0),
             radius: 0.5,
             material: Material::Diffuse {
@@ -104,7 +93,7 @@ impl Scene {
                 color: Vector3::new(1.0,1.0,1.0),
             },
         });
-        scene.add(Sphere {
+        spheres.push(Sphere {
             position: Point3::new(-0.0,-0.8,-2.0),
             radius: 0.5,
             material: Material::Diffuse {
@@ -112,7 +101,7 @@ impl Scene {
                 color: Vector3::new(1.0,1.0,1.0),
             },
         });
-        scene.add(Sphere {
+        spheres.push(Sphere {
             position: Point3::new(0.8,-0.8,-2.0),
             radius: 0.5,
             material: Material::Diffuse {
@@ -121,12 +110,8 @@ impl Scene {
             },
         });
 
-
+        let scene = try!(Scene::new(spheres));
         Ok(scene)
-    }
-
-    fn add(&mut self, sphere: Sphere) {
-        self.spheres.push(sphere)
     }
 
     pub fn sample_skybox(&self, direction: Vector3<f32>) -> Vector3<f32> {
