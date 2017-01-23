@@ -87,7 +87,7 @@ impl Primitive for Triangle {
     }
     fn is_light(&self) -> bool {
         match self.material {
-            Material::Emissive { color } => true,
+            Material::Emissive { .. } => true,
             _ => false,
         }
     }

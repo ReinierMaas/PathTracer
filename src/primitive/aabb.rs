@@ -55,6 +55,13 @@ impl AABB {
                    .min(imin.y.max(imax.y))
                    .min(imin.z.max(imax.z));
 
+        if tmax < 0. || tmin > tmax || ray.distance < tmin {
+            None
+        } else {
+            Some((tmin, tmax))
+        }
+
+        /*
         if tmax < 0.0 {
             // ray intersects aabb but behind us
             return None;
@@ -63,6 +70,10 @@ impl AABB {
             // ray doesn't intersect aabb
             return None;
         }
+        //if ray.distance < tmin {
+        //    // ray doesn't reach aabb
+        //    return None;
+        //}
         if tmin < 0.0 {
             // ray originates inside aabb
             // hit is at the inside at tmax
@@ -71,6 +82,7 @@ impl AABB {
         // ray originates outside aabb
         // hit is at the outside at tmin
         return Some((tmin, tmax));
+        */
     }
     fn centre(&self) -> Point3<f32> {
         self.min + 0.5 * (self.max - self.min)
