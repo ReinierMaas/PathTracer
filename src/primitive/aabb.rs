@@ -40,7 +40,7 @@ impl AABB {
         self.max - self.min
     }
 
-    pub fn intersect(&self, ray : & mut Ray) -> Option<(f32,f32)> {
+    pub fn intersect(&self, ray : &Ray) -> Option<(f32,f32)> {
         let rcp_dir : Vector3<f32> = 1.0 / ray.direction;
         let min = self.min - ray.origin;
         let max = self.max - ray.origin;
