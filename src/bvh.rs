@@ -23,7 +23,6 @@ pub struct BVH<T: Primitive> {
 impl<T: Primitive> BVH<T> {
     pub fn new(objects: Vec<T>) -> BVH<T> {
         let len = objects.len();
-        println!("{:?}", len);
         let mut indices = Vec::with_capacity(len);
         let mut lights = Vec::with_capacity(len);
         for object in &objects {
@@ -39,7 +38,6 @@ impl<T: Primitive> BVH<T> {
             left_first: 0,
             count: len }
         );
-        println!("{:?}", bvh_nodes[0].bounds);
         let mut bvh = BVH {
             objects: objects,
             indices: indices,
@@ -79,27 +77,18 @@ impl<T: Primitive> BVH<T> {
         let mut left_bound = AABB::new();
         let mut right_bound = AABB::new();
 
-        println!();
-        println!("{:?}", (axis, pivot));
-
         let mut pivot_index = first;
         for index in first..first + count {
             let bound = self.objects[self.indices[index]].bounds();
-            println!("bound: {:?}", bound);
             let centre_on_axis = self.objects[self.indices[index]].centre()[axis];
             if centre_on_axis <= pivot {
-                println!("left: {:?}", left_bound);
                 left_bound = left_bound.combine(&bound);
-                println!("left: {:?}", left_bound);
                 self.indices.swap(pivot_index, index);
                 pivot_index += 1;
             }
             else {
-                println!("right: {:?}", right_bound);
                 right_bound = right_bound.combine(&bound);
-                println!("right: {:?}", right_bound);
             }
-            println!();
         }
 
         //Split current node
@@ -114,14 +103,6 @@ impl<T: Primitive> BVH<T> {
         self.bvh_nodes.push(
             BVHNode { bounds : right_bound, left_first : pivot_index, count : count - left_count }
         );
-
-        //assert!(self.bvh_nodes[node_index].bounds >= self.bvh_nodes[self.bvh_nodes[node_index].left_first].bounds);
-        //assert!(self.bvh_nodes[node_index].bounds >= self.bvh_nodes[self.bvh_nodes[node_index].left_first + 1].bounds);
-
-        println!("{:?}", count);
-        println!("{:?}", (node_index, &self.bvh_nodes[node_index]));
-        println!("{:?}", (self.bvh_nodes[node_index].left_first, &self.bvh_nodes[self.bvh_nodes[node_index].left_first]));
-        println!("{:?}", (self.bvh_nodes[node_index].left_first + 1, &self.bvh_nodes[self.bvh_nodes[node_index].left_first + 1]));
 
         true
     }
