@@ -60,7 +60,7 @@ impl<T: Primitive> BVH<T> {
         let mut centre_bound = AABB::new();
         let first = self.bvh_nodes[node_index].left_first;
         let count = self.bvh_nodes[node_index].count;
-        for index in first..count {
+        for index in first..first + count {
             let centre = &self.objects[self.indices[index]].centre();
             centre_bound = centre_bound.extent(centre);
         }
@@ -79,18 +79,27 @@ impl<T: Primitive> BVH<T> {
         let mut left_bound = AABB::new();
         let mut right_bound = AABB::new();
 
+        println!();
+        println!("{:?}", (axis, pivot));
+
         let mut pivot_index = first;
-        for index in first..count {
+        for index in first..first + count {
             let bound = self.objects[self.indices[index]].bounds();
+            println!("bound: {:?}", bound);
             let centre_on_axis = self.objects[self.indices[index]].centre()[axis];
             if centre_on_axis <= pivot {
+                println!("left: {:?}", left_bound);
                 left_bound = left_bound.combine(&bound);
+                println!("left: {:?}", left_bound);
                 self.indices.swap(pivot_index, index);
                 pivot_index += 1;
             }
             else {
+                println!("right: {:?}", right_bound);
                 right_bound = right_bound.combine(&bound);
+                println!("right: {:?}", right_bound);
             }
+            println!();
         }
 
         //Split current node
