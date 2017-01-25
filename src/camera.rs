@@ -208,23 +208,16 @@ impl<T: Primitive> Camera<T> {
                             break;
                         },
                         &Material::Diffuse { speculaty, color} => {
+                            if inside { sample = Vector3::new(0.,0.,0.); break };
                             let Closed01(r0) = rand::random::<Closed01<f32>>();
                             if r0 < speculaty {
                                 // Specular sampling
-                                let reflected_dir = if inside {
-                                        reflect(&ray.direction, &-normal)
-                                    } else {
-                                        reflect(&ray.direction, &normal)
-                                };
+                                let reflected_dir = reflect(&ray.direction, &normal);
                                 sample = sample.mul_element_wise(color);
                                 ray.reset(intersection_point, reflected_dir, f32::INFINITY);
                             } else {
                                 // Diffuse sampling
-                                let diffuse_dir = if inside {
-                                        diffuse(&-normal)
-                                    } else {
-                                        diffuse(&normal)
-                                };
+                                let diffuse_dir = diffuse(&normal);
                                 sample = sample.mul_element_wise(diffuse_dir.dot(normal) * color);
                                 ray.reset(intersection_point, diffuse_dir, f32::INFINITY);
                             }

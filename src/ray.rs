@@ -26,7 +26,7 @@ impl Ray {
         }
     }
     pub fn reset(&mut self, origin: Point3<f32>, direction: Vector3<f32>, distance: f32) {
-        self.origin = origin + f32::EPSILON * direction; // advance ray
+        self.origin = origin + 20. * f32::EPSILON * direction; // advance ray
         self.direction = direction;
         self.distance = distance; // set length
     }
