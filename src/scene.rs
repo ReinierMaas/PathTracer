@@ -2,6 +2,7 @@ extern crate cgmath;
 use self::cgmath::{Vector3, Point3};
 use std::io;
 use std::mem;
+use rand;
 use ray::{Ray,Intersection};
 use bvh::BVH;
 use std::f32::consts::FRAC_1_PI;
@@ -14,7 +15,7 @@ use material::Material;
 
 #[derive(Debug)]
 pub struct Scene<T: Primitive> {
-    bvh: BVH<T>,
+    pub bvh: BVH<T>,
     skybox: Vec<f32>,
 }
 
@@ -28,7 +29,6 @@ impl<T: Primitive> Scene<T> {
         };
         Ok(scene)
     }
-
     pub fn intersect_closest(&self, ray : & mut Ray) -> Option<Intersection> {
         self.bvh.intersect_closest(ray)
     }
@@ -47,17 +47,7 @@ impl<T: Primitive> Scene<T> {
             },
         };
 
-        let back_plane = Sphere {
-            position: Point3::new(0.0,0.0,-5000.0),
-            radius: 4998.5,
-            material: Material::Diffuse {
-                speculaty: 0.,
-                color: Vector3::new(1.0,1.0,1.0),
-            },
-        };
-
-        spheres.push(bottom_plane);
-        //scene.push(back_plane);
+        //spheres.push(bottom_plane);
         spheres.push(Sphere {
             position: Point3::new(-0.8, 0.0, -2.0),
             radius: 0.3,
@@ -76,6 +66,7 @@ impl<T: Primitive> Scene<T> {
                 color: Vector3::new(0.1,1.0,0.1),
             },
         });
+
 
         spheres.push(Sphere {
             position: Point3::new(0.8,0.0,-2.0),
@@ -129,6 +120,7 @@ impl<T: Primitive> Scene<T> {
         let bytes: &[u8] = unsafe { file.as_slice() };
         let mut floats = vec![0.0 as f32; bytes.len() / 2];
         println!("{}",floats.len());
+
         for (chunk, mut float) in bytes.chunks(4).into_iter().zip(floats.iter_mut()) {
             // we assume big endian here!
             // but intel is little endian

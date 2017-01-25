@@ -1,7 +1,8 @@
 extern crate cgmath;
-use self::cgmath::{Point3, InnerSpace};
+use self::cgmath::{Point3, InnerSpace, Vector3};
 
 use std::f32;
+use rand;
 
 use super::Primitive;
 use super::aabb::AABB;
@@ -86,11 +87,35 @@ impl Primitive for Sphere {
                             y : self.position.y + self.radius,
                             z : self.position.z + self.radius }}
     }
-    fn is_light(&self) -> bool {
+    fn is_light(&self) -> Option<Vector3<f32>> {
         match self.material {
-            Material::Emissive { .. } => true,
-            _ => false,
+            Material::Emissive { color } => Some(color),
+            _ => None,
         }
+    }
+    fn random_point(&self) -> (Point3<f32>, f32) {
+        use std::f32;
+        use rand::distributions::*;
+        let mut rng = rand::thread_rng();
+
+        let phi_range: Range<f32> = Range::new(0.0, 2.0*f32::consts::PI);
+        let cos_theta_range: Range<f32> = Range::new(-1.0, 1.0);
+        let u_range: Range<f32> = Range::new(0.0,1.0);
+
+        let phi =  phi_range.ind_sample(&mut rng);
+        let cos_theta = cos_theta_range.ind_sample(&mut rng);
+        let u = u_range.ind_sample(&mut rng);
+
+
+        let theta = cos_theta.acos();
+
+        let r = self.radius * u.cbrt();
+        let x = r * theta.sin() * phi.cos();
+        let y = r * theta.sin() * phi.cos();
+        let z = r * theta.cos();
+        (Point3{x:x+self.position.x,y:y+self.position.y,z:z+self.position.z}, f32::consts::PI*r*r)
+
+
     }
 }
 

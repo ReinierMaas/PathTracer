@@ -85,11 +85,11 @@ impl Primitive for Triangle {
                             y : self.position0.y.max(self.position1.y).max(self.position2.y),
                             z : self.position0.z.max(self.position1.z).max(self.position2.z) }}
     }
-    fn is_light(&self) -> bool {
-        match self.material {
-            Material::Emissive { .. } => true,
-            _ => false,
-        }
+    fn is_light(&self) -> Option<Vector3<f32>> {
+        None
+    }
+    fn random_point(&self) -> (Point3<f32>, f32) {
+        (Point3{x:0.0,y:0.0,z:0.0}, 0.0)
     }
 }
 

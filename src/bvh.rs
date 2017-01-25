@@ -1,7 +1,9 @@
 extern crate cgmath;
 
+use rand;
 use std::f32;
 
+use cgmath::Point3;
 use primitive::Primitive;
 use primitive::aabb::AABB;
 
@@ -31,7 +33,7 @@ impl<T: Primitive> BVH<T> {
         for object in &objects {
             let count = indices.len();
             indices.push(count);
-            if object.is_light() {
+            if let Some(a) = object.is_light() {
                 lights.push(count);
             }
         }
@@ -256,5 +258,15 @@ impl<T: Primitive> BVH<T> {
             }
         }
         None
+    }
+
+    pub fn random_light(&self) -> &T {
+        use std::f32;
+        use rand::distributions::*;
+        let mut rng = rand::thread_rng();
+        let index_range: Range<usize> = Range::new(0, self.lights.len());
+        let i = index_range.ind_sample(&mut rng);
+        let obj_idx = self.lights[i];
+        &self.objects[obj_idx]
     }
 }

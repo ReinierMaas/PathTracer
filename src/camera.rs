@@ -167,6 +167,63 @@ impl<T: Primitive> Camera<T> {
 
     }
 
+    fn focus(&self, mut ray : &mut Ray, distance: f32, depth: u8) -> f32 {
+        if depth == 0 { return distance }
+        match self.scene.intersect_closest(&mut ray) {
+            Some(ref intersection) => {
+                let distance = distance + ray.distance;
+                match intersection.material {
+                    &Material::Diffuse{speculaty,..} if speculaty > 0.5 => {
+                        let reflect = reflect(&ray.direction, &intersection.normal);
+                        let intersection_point = ray.intersection();
+                        ray.reset(intersection_point, reflect, f32::INFINITY);
+                        return self.focus(ray, distance, depth - 1);
+                    },
+                    &Material::Dielectic{refraction_index_n1, refraction_index_n2, ..} => {
+                        let normal = intersection.normal;
+                        let inside = intersection.inside;
+                        let intersection_point = ray.intersection();
+                        let refracted_dir = if inside {
+                                refract(&ray.direction, &-normal, refraction_index_n2, refraction_index_n1)
+                            } else {
+                                refract(&ray.direction, &normal, refraction_index_n1, refraction_index_n2)
+                        };
+                        if let Some(refracted_dir) = refracted_dir {
+                            let schlick_reflection = if inside {
+                                    schlick(&ray.direction, &-normal, refraction_index_n2, refraction_index_n1)
+                                } else {
+                                    schlick(&ray.direction, &normal, refraction_index_n1, refraction_index_n2)
+                            };
+                            if 0.5 < schlick_reflection {
+                                // Reflected ray
+                                let reflected_dir = if inside {
+                                        reflect(&ray.direction, &-normal)
+                                    } else {
+                                        reflect(&ray.direction, &normal)
+                                };
+                                ray.reset(intersection_point, reflected_dir, f32::INFINITY);
+                            } else {
+                                // Refraction sampling
+                                ray.reset(intersection_point, refracted_dir, f32::INFINITY);
+                            }
+                        } else {
+                            // Full internal reflection
+                            let reflected_dir = if inside {
+                                    reflect(&ray.direction, &-normal)
+                                } else {
+                                    reflect(&ray.direction, &normal)
+                            };
+                            ray.reset(intersection_point, reflected_dir, f32::INFINITY);
+                        }
+                        return self.focus(ray, distance, depth - 1);
+                    },
+                    _ => return if distance == 0. { f32::INFINITY } else { distance },
+                }
+            },
+            None => return if distance == 0. { f32::INFINITY } else { distance },
+        }
+
+    }
     fn update(&mut self) {
         self.direction = (self.target - self.origin).normalize();
         let unit_y = Vector3::new(0.0, 1.0, 0.0);
@@ -174,11 +231,12 @@ impl<T: Primitive> Camera<T> {
         self.up = self.direction.cross(self.right);
 
         let mut ray = Ray::new(self.origin, self.direction, f32::INFINITY);
-        let _intersection = self.scene.intersect_closest(&mut ray);
+
+        let mut distance = 0.0;
 
         let aspect_ratio = (self.width as f32) / (self.height as f32);
 
-        self.focal_distance = f32::min(20.0, ray.distance);
+        self.focal_distance = f32::min(20.0, self.focus(&mut ray, distance, 5));
 
         let c = self.origin + self.focal_distance * self.direction;
 
@@ -197,7 +255,7 @@ impl<T: Primitive> Camera<T> {
         for _ in 0..depth {
             match self.scene.intersect_closest(ray) {
                 None => {
-                    sample = sample.mul_element_wise(self.scene.sample_skybox(ray.direction));
+                    sample = sample.mul_element_wise(0.0 * self.scene.sample_skybox(ray.direction));
                     break;
                 },
                 Some(Intersection{normal, inside, material}) => {
@@ -209,6 +267,30 @@ impl<T: Primitive> Camera<T> {
                         },
                         &Material::Diffuse { speculaty, color} => {
                             if inside { sample = Vector3::new(0.,0.,0.); break };
+                            let brdf = color / f32::consts::PI;
+                            let random_light = self.scene.bvh.random_light();
+                            let (point_on_light, area)= random_light.random_point();
+                            let v = (point_on_light - intersection_point);
+                            let light = v.normalize();
+                            let mut god_ray = Ray::new(intersection_point + f32::EPSILON*200. * light, light, f32::INFINITY);
+                            let mut ld = Vector3::new(0.0,0.0,0.0);
+                            if let Some(intersection_on_light) = random_light.intersect(&mut god_ray) {
+                                if normal.dot(light) > 0.0 && intersection_on_light.normal.dot(light) < 0.0 {
+                                    god_ray.distance -= f32::EPSILON*20.;
+                                    match self.scene.bvh.intersect_any(&mut god_ray) {
+                                        None => {
+                                            if let Some(color) = random_light.is_light() {
+                                                let solid_angle = (-1.0 * (intersection_on_light.normal.dot(light)) * area) / (god_ray.distance * god_ray.distance);
+
+                                                sample = sample.mul_element_wise(solid_angle * (normal.dot(light)) * color.mul_element_wise(brdf));
+                                            }
+                                        },
+                                        Some(x) => {
+                                            //println!("{:?}", x);
+                                        },
+                                    }
+                                }
+                            } 
                             let Closed01(r0) = rand::random::<Closed01<f32>>();
                             if r0 < speculaty {
                                 // Specular sampling
