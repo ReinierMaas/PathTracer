@@ -29,8 +29,8 @@ impl<T: Primitive> Scene<T> {
         Ok(scene)
     }
 
-    pub fn intersect(&self, ray : & mut Ray) -> Option<Intersection> {
-        self.bvh.intersect(ray)
+    pub fn intersect_closest(&self, ray : & mut Ray) -> Option<Intersection> {
+        self.bvh.intersect_closest(ray)
     }
 
     pub fn default_scene() -> Result<Scene<Sphere>, io::Error> {
@@ -71,7 +71,8 @@ impl<T: Primitive> Scene<T> {
             position: Point3::new(0.0,0.0,-2.0),
             radius: 0.3,
             material: Material::Dielectic {
-                refraction_index: 1.3,
+                refraction_index_n1: 1.,
+                refraction_index_n2: 1.3,
                 color: Vector3::new(0.1,1.0,0.1),
             },
         });

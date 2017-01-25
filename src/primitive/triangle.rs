@@ -70,7 +70,7 @@ impl Primitive for Triangle {
         ray.distance = t;
         Some(Intersection{
             normal: ((1. - u - v) * self.normal0 + u * self.normal1 + v * self.normal2).normalize(),
-            inside: true,
+            inside: a < 0.,
             material: &self.material,
         })
     }

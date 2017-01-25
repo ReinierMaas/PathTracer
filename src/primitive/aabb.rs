@@ -5,7 +5,7 @@ use std::f32;
 
 use ray::Ray;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct AABB {
     pub min: Point3<f32>,
     pub max: Point3<f32>,
@@ -38,6 +38,10 @@ impl AABB {
     }
     pub fn size(&self) -> Vector3<f32> {
         self.max - self.min
+    }
+    pub fn area(&self) -> f32 {
+        let extent = self.size();
+        2. * extent.x * extent.y + 2. * extent.x * extent.z + 2. * extent.y * extent.z
     }
 
     pub fn intersect(&self, ray : &Ray) -> Option<(f32,f32)> {

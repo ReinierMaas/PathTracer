@@ -34,6 +34,42 @@ pub struct Camera<T: Primitive> {
     scene: Scene<T>,
 }
 
+fn refract(direction: &Vector3<f32>, normal: &Vector3<f32>, n1: f32, n2: f32) -> Option<Vector3<f32>> {
+    // Refract
+    let div = n1 / n2;
+    let cosi = direction.dot(*normal);
+    let sin_t2 = div * div * (1. - cosi * cosi);
+    if sin_t2 <= 1. {
+        Some(div * direction - (div * cosi + (1. - sin_t2).sqrt()) * normal)
+    } else {
+        None
+    }
+}
+fn reflect(direction: &Vector3<f32>, normal: &Vector3<f32>) -> Vector3<f32> {
+    // Reflect
+    direction - 2. * direction.dot(*normal) * normal
+}
+fn schlick(direction: &Vector3<f32>, normal: &Vector3<f32>, n1: f32, n2: f32) -> f32 {
+    // Schlick
+    let div = (n1 - n2) / (n1 + n2);
+    let r0 = div * div;
+    let cosi = -direction.dot(*normal); // ray direction is towards normal invert answer
+    r0 + (1. - r0) * (1. - cosi).powi(5)
+}
+fn diffuse(normal: &Vector3<f32>) -> Vector3<f32> {
+    // Diffuse
+    let Closed01(r0) = rand::random::<Closed01<f32>>();
+    let r = (1. - r0 * r0).sqrt();
+    let Closed01(r1) = rand::random::<Closed01<f32>>();
+    let phi = 2. * f32::consts::PI * r1;
+    let diffuse_dir = Vector3::new(phi.cos() * r, phi.sin() * r, r0);
+    if diffuse_dir.dot(*normal) < 0. {
+        -1. * diffuse_dir
+    } else {
+        diffuse_dir
+    }
+}
+
 impl<T: Primitive> Camera<T> {
     pub fn new(width: usize, height: usize, scene: Scene<T>) -> Camera<T> {
         let mut camera = Camera {
@@ -138,7 +174,7 @@ impl<T: Primitive> Camera<T> {
         self.up = self.direction.cross(self.right);
 
         let mut ray = Ray::new(self.origin, self.direction, f32::INFINITY);
-        let _intersection = self.scene.intersect(&mut ray);
+        let _intersection = self.scene.intersect_closest(&mut ray);
 
         let aspect_ratio = (self.width as f32) / (self.height as f32);
 
@@ -158,112 +194,83 @@ impl<T: Primitive> Camera<T> {
     /// sample a ray by shooting it through the scene
     pub fn sample(&self, ray: &mut Ray, depth: u32) -> Vector3<f32> {
         let mut sample = Vector3::new(1., 1., 1.);
-        let mut intersection = self.scene.intersect(ray);
-        let mut current_refraction_index = 1.; //Air
         for _ in 0..depth {
-            match intersection {
+            match self.scene.intersect_closest(ray) {
                 None => {
                     sample = sample.mul_element_wise(self.scene.sample_skybox(ray.direction));
                     break;
-                }
+                },
                 Some(Intersection{normal, inside, material}) => {
                     let intersection_point = ray.intersection();
                     match material {
-                        &Material::Diffuse { speculaty, color} => {
-                            if speculaty > 0. {
-                                let Closed01(r0) = rand::random::<Closed01<f32>>();
-                                if r0 < speculaty {
-                                    // Specular sampling
-                                    sample = sample.mul_element_wise(color);
-                                    let reflected_dir = ray.direction - 2. * ray.direction.dot(normal) * normal;
-                                    ray.reset(intersection_point, reflected_dir, f32::INFINITY);
-                                    intersection = self.scene.intersect(ray);
-                                    continue
-                                }
-                            }
-                            // Diffuse sampling
-                            let diffuse_dir = {
-                                let Closed01(r0) = rand::random::<Closed01<f32>>();
-                                let r = (1. - r0 * r0).sqrt();
-                                let Closed01(r1) = rand::random::<Closed01<f32>>();
-                                let phi = 2. * f32::consts::PI * r1;
-                                let diffuse_dir = Vector3::new(phi.cos() * r, phi.sin() * r, r0);
-                                if diffuse_dir.dot(normal) < 0. {
-                                    -1. * diffuse_dir
-                                } else {
-                                    diffuse_dir
-                                }
-                            };
-                            sample = sample.mul_element_wise(diffuse_dir.dot(normal) * color);
-                            ray.reset(intersection_point, diffuse_dir, f32::INFINITY);
-                            intersection = self.scene.intersect(ray);
-                            continue
-                        }
-                        &Material::Dielectic { refraction_index, color } => {
-                            let n1 = current_refraction_index;
-                            let mut normal = normal;
-                            let n2 = if n1 != 1. { normal = -normal; 1. } else { refraction_index };
-                            let refracted_dir = {
-                                // Refract
-                                let div = n1 / n2;
-                                let cosi = ray.direction.dot(normal);
-                                let sin_t2 = div * div * (1. - cosi * cosi);
-                                if sin_t2 <= 1. {
-                                    Some(div * ray.direction - (div * cosi + (1. - sin_t2).sqrt()) * normal)
-                                } else {
-                                    None
-                                }
-                            };
-                            if let Some(refracted_dir) = refracted_dir {
-                                let reflection = {
-                                    // Schlick
-                                    let div = (n1 - n2) / (n1 + n2);
-                                    let r0 = div * div;
-                                    let cosi = -ray.direction.dot(normal);
-                                    r0 + (1. - r0) * (1. - cosi).powi(5)
-                                };
-                                let refraction = 1. - reflection;
-                                let Closed01(r0) = rand::random::<Closed01<f32>>();
-                                if r0 < refraction {
-                                    // Refraction sampling
-                                    current_refraction_index = n2;
-                                    ray.reset(intersection_point, refracted_dir, f32::INFINITY);
-                                    intersection = self.scene.intersect(ray);
-                                    if n2 != 1. {
-                                        let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
-                                        let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
-                                        sample = sample.mul_element_wise(transparency);
-                                    }
-                                    continue
-                                } else {
-                                    // Reflected ray
-                                    let reflected_dir = ray.direction - 2. * ray.direction.dot(normal) * normal;
-                                    ray.reset(intersection_point, reflected_dir, f32::INFINITY);
-                                    intersection = self.scene.intersect(ray);
-                                    if n2 != 1. {
-                                        sample = sample.mul_element_wise(color);
-                                    }
-                                    //else {
-                                    //    let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
-                                    //    let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
-                                    //    sample = sample.mul_element_wise(transparency);
-                                    //}
-                                    continue
-                                }
-                            } else {
-                                // Full internal reflection
-                                let reflected_dir = ray.direction - 2. * ray.direction.dot(normal) * normal;
-                                ray.reset(intersection_point, reflected_dir, f32::INFINITY);
-                                intersection = self.scene.intersect(ray);
-                                //let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
-                                //let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
-                                //sample = sample.mul_element_wise(transparency);
-                                continue
-                            }
-                        }
                         &Material::Emissive { color } => {
                             sample = sample.mul_element_wise(color);
                             break;
+                        },
+                        &Material::Diffuse { speculaty, color} => {
+                            let Closed01(r0) = rand::random::<Closed01<f32>>();
+                            if r0 < speculaty {
+                                // Specular sampling
+                                let reflected_dir = if inside {
+                                        reflect(&ray.direction, &-normal)
+                                    } else {
+                                        reflect(&ray.direction, &normal)
+                                };
+                                sample = sample.mul_element_wise(color);
+                                ray.reset(intersection_point, reflected_dir, f32::INFINITY);
+                            } else {
+                                // Diffuse sampling
+                                let diffuse_dir = if inside {
+                                        diffuse(&-normal)
+                                    } else {
+                                        diffuse(&normal)
+                                };
+                                sample = sample.mul_element_wise(diffuse_dir.dot(normal) * color);
+                                ray.reset(intersection_point, diffuse_dir, f32::INFINITY);
+                            }
+                        }
+                        &Material::Dielectic { refraction_index_n1, refraction_index_n2, color } => {
+                            if inside {
+                                let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
+                                let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
+                                sample = sample.mul_element_wise(transparency);
+                            }
+                            let refracted_dir = if inside {
+                                    refract(&ray.direction, &-normal, refraction_index_n2, refraction_index_n1)
+                                } else {
+                                    refract(&ray.direction, &normal, refraction_index_n1, refraction_index_n2)
+                            };
+                            if let Some(refracted_dir) = refracted_dir {
+                                let schlick_reflection = if inside {
+                                        schlick(&ray.direction, &-normal, refraction_index_n2, refraction_index_n1)
+                                    } else {
+                                        schlick(&ray.direction, &normal, refraction_index_n1, refraction_index_n2)
+                                };
+                                let Closed01(r0) = rand::random::<Closed01<f32>>();
+                                if r0 < schlick_reflection {
+                                    // Reflected ray
+                                    if !inside {
+                                        sample = sample.mul_element_wise(color);
+                                    }
+                                    let reflected_dir = if inside {
+                                            reflect(&ray.direction, &-normal)
+                                        } else {
+                                            reflect(&ray.direction, &normal)
+                                    };
+                                    ray.reset(intersection_point, reflected_dir, f32::INFINITY);
+                                } else {
+                                    // Refraction sampling
+                                    ray.reset(intersection_point, refracted_dir, f32::INFINITY);
+                                }
+                            } else {
+                                // Full internal reflection
+                                let reflected_dir = if inside {
+                                        reflect(&ray.direction, &-normal)
+                                    } else {
+                                        reflect(&ray.direction, &normal)
+                                };
+                                ray.reset(intersection_point, reflected_dir, f32::INFINITY);
+                            }
                         }
                     }
                 }

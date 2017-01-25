@@ -8,7 +8,8 @@ pub enum Material {
         color: Vector3<f32>,
     },
     Dielectic {
-        refraction_index: f32,
+        refraction_index_n1: f32,
+        refraction_index_n2: f32,
         color: Vector3<f32>,
     },
     Emissive {
