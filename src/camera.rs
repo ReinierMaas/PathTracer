@@ -1,7 +1,7 @@
 extern crate cgmath;
 extern crate rand;
 extern crate sdl2;
-use self::cgmath::{Vector3, Point3};
+use self::cgmath::{Vector3, Point3, Array};
 use self::cgmath::InnerSpace;
 use self::cgmath::ElementWise;
 use super::ray::{Ray, Intersection};
@@ -354,6 +354,13 @@ impl<T: Primitive> Camera<T> {
                     }
                 }
             };
+            let Closed01(russian_roulette) = rand::random::<Closed01<f32>>();
+            let survival = sample.max().max(0.1);
+            if russian_roulette < survival {
+                sample /= survival;
+            } else {
+                break;
+            }
         }
         accumalated_color
     }

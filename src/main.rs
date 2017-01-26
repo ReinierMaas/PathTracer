@@ -104,8 +104,8 @@ fn main() {
 
     //let scene = Scene::<Sphere>::default_scene().expect("scene");
     //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/cube.obj")).expect("scene");
-    let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/dragon.obj")).expect("scene");
-    //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/buddha.obj")).expect("scene");
+    //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/dragon.obj")).expect("scene");
+    let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/buddha.obj")).expect("scene");
     //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/rungholt.obj")).expect("scene");
     //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/powerplant.obj")).expect("scene");
     let mut camera = Camera::new(WIDTH, HEIGHT, scene);
@@ -158,7 +158,7 @@ fn main() {
                             for x in 0..WIDTH {
                                 let mut ray = camera.generate(x,y+start_y);
                                 let idx = x + y * WIDTH;
-                                chunk[idx] += camera.sample(&mut ray, 20);
+                                chunk[idx] += camera.sample(&mut ray, 512);
                                 let offset = y*pitch + x*3;
                                 let rgb = vec_to_rgb(scale*chunk[idx]);
                                 chunk2[offset + 0] = rgb.x;
