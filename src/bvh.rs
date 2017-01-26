@@ -31,7 +31,7 @@ impl<T: Primitive> BVH<T> {
     pub fn new(objects: Vec<T>) -> BVH<T> {
         let len = objects.len();
         let mut indices = Vec::with_capacity(len);
-        let mut lights = Vec::with_capacity(len);
+        let mut lights = Vec::new();
         for object in &objects {
             let count = indices.len();
             indices.push(count);
@@ -39,6 +39,7 @@ impl<T: Primitive> BVH<T> {
                 lights.push(count);
             }
         }
+        println!("# of Lights: {}", lights.len());
         let mut bvh_nodes = Vec::with_capacity(len);
         bvh_nodes.push(BVHNode {
             bounds: objects.iter().fold(AABB::new(), |sum, val| sum.combine(&val.bounds())),
@@ -244,13 +245,16 @@ impl<T: Primitive> BVH<T> {
         None
     }
 
-    pub fn random_light(&self) -> &T {
-        use std::f32;
-        use rand::distributions::*;
-        let mut rng = rand::thread_rng();
-        let index_range: Range<usize> = Range::new(0, self.lights.len());
-        let i = index_range.ind_sample(&mut rng);
-        let obj_idx = self.lights[i];
-        &self.objects[obj_idx]
+    pub fn random_light(&self) -> Option<&T> {
+        if self.lights.len() == 0 {
+            None
+        } else {
+            use rand::distributions::*;
+            let mut rng = rand::thread_rng();
+            let index_range: Range<usize> = Range::new(0, self.lights.len());
+            let i = index_range.ind_sample(&mut rng);
+            let obj_idx = self.lights[i];
+            Some(&self.objects[obj_idx])
+        }
     }
 }

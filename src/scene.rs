@@ -44,7 +44,7 @@ impl<T: Primitive> Scene<T> {
             normal0: Vector3::new(0.0,-1.0,0.0),
             normal1: Vector3::new(0.0,-1.0,0.0),
             normal2: Vector3::new(0.0,-1.0,0.0),
-            material: Material::Emissive{
+            material: Material::Emissive {
                 color: material::LIGHT_COLOR,
             },
         });

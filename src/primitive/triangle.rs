@@ -1,6 +1,8 @@
 extern crate cgmath;
 use self::cgmath::{Vector3, Point3, InnerSpace, EuclideanSpace};
 use std::f32;
+use rand;
+use rand::Closed01;
 
 use super::Primitive;
 use super::aabb::AABB;
@@ -86,10 +88,23 @@ impl Primitive for Triangle {
                             z : self.position0.z.max(self.position1.z).max(self.position2.z) }}
     }
     fn is_light(&self) -> Option<Vector3<f32>> {
-        None
+        match self.material {
+            Material::Emissive { color } => Some(color),
+            _ => None,
+        }
     }
     fn random_point(&self) -> (Point3<f32>, f32) {
-        (Point3{x:0.0,y:0.0,z:0.0}, 0.0)
+        let Closed01(u) = rand::random::<Closed01<f32>>();
+        let Closed01(v) = rand::random::<Closed01<f32>>();
+        let mut edge1 = self.position1 - self.position0;
+        let mut edge2 = self.position2 - self.position0;
+        let point = self.position0 + u * edge1 + v* edge2;
+        let len1 = edge1.magnitude();
+        let len2 = edge2.magnitude();
+        edge1 /= len1;
+        edge2 /= len2;
+        let area = 0.5 * (1.0 - edge1.dot(edge2)) * len1 * len2;
+        (point, area)
     }
 }
 

@@ -255,61 +255,60 @@ impl<T: Primitive> Camera<T> {
     pub fn sample(&self, ray: &mut Ray, depth: u32) -> Vector3<f32> {
         let mut accumalated_color = Vector3::new(0.,0.,0.);
         let mut sample = Vector3::new(1., 1., 1.);
+        let mut diffuse_bounce = false;
         for _ in 0..depth {
             match self.scene.bvh.intersect_closest(ray) {
                 None => {
-                    accumalated_color += sample.mul_element_wise(0.1 * self.scene.sample_skybox(ray.direction));;
+                    accumalated_color += sample.mul_element_wise(0.01 * self.scene.sample_skybox(ray.direction));;
                     break;
                 },
                 Some(Intersection{normal, inside, material}) => {
                     let intersection_point = ray.intersection();
                     match material {
                         &Material::Emissive { color } => {
-                            accumalated_color += sample.mul_element_wise(color);
+                            if !diffuse_bounce { accumalated_color += sample.mul_element_wise(color); }
                             break;
                         },
                         &Material::Diffuse { speculaty, color} => {
                             if inside { break };
-                            /*
-                            let brdf = color / f32::consts::PI;
-                            let random_light = self.scene.bvh.random_light();
-                            let (point_on_light, area)= random_light.random_point();
-                            let v = (point_on_light - intersection_point);
-                            let light = v.normalize();
-                            let mut god_ray = Ray::new(intersection_point + f32::EPSILON*200. * light, light, f32::INFINITY);
-                            let mut ld = Vector3::new(0.0,0.0,0.0);
-                            if let Some(intersection_on_light) = random_light.intersect(&mut god_ray) {
-                                if normal.dot(light) > 0.0 && intersection_on_light.normal.dot(light) < 0.0 {
-                                    god_ray.distance -= f32::EPSILON*20.;
-                                    match self.scene.bvh.intersect_any(&mut god_ray) {
-                                        None => {
-                                            if let Some(color) = random_light.is_light() {
-                                                let solid_angle = (-1.0 * (intersection_on_light.normal.dot(light)) * area) / (god_ray.distance * god_ray.distance);
-
-                                                sample = sample.mul_element_wise(solid_angle * (normal.dot(light)) * color.mul_element_wise(brdf));
-                                            }
-                                        },
-                                        Some(x) => {
-                                            //println!("{:?}", x);
-                                        },
+                            if let Some(random_light) = self.scene.bvh.random_light() {
+                                let (point_on_light, area)= random_light.random_point();
+                                let light_dir = (point_on_light - intersection_point).normalize();
+                                let mut god_ray = Ray::new(intersection_point + f32::EPSILON * light_dir, light_dir, f32::INFINITY);
+                                //let mut ld = Vector3::new(0.0,0.0,0.0);
+                                if let Some(intersection_on_light) = random_light.intersect(&mut god_ray) {
+                                    let cos_intersection = normal.dot(light_dir);
+                                    let cos_light = -intersection_on_light.normal.dot(light_dir);
+                                    if cos_intersection > 0.0 && cos_light > 0.0 {
+                                        god_ray.distance -= f32::EPSILON;
+                                        if let None = self.scene.bvh.intersect_any(&mut god_ray) {
+                                            let brdf = color * f32::consts::FRAC_1_PI;
+                                            let light_color = random_light.is_light().unwrap();
+                                            let solid_angle = (cos_light * area) / (god_ray.distance * god_ray.distance);
+                                            let nee_estimate = sample.mul_element_wise(solid_angle * cos_intersection * light_color.mul_element_wise(brdf));
+                                            accumalated_color += nee_estimate;
+                                        }
                                     }
                                 }
                             }
-                            */
+
                             let Closed01(r0) = rand::random::<Closed01<f32>>();
                             if r0 < speculaty {
                                 // Specular sampling
+                                diffuse_bounce = false;
                                 let reflected_dir = reflect(&ray.direction, &normal);
                                 sample = sample.mul_element_wise(color);
                                 ray.reset(intersection_point, reflected_dir, f32::INFINITY);
                             } else {
                                 // Diffuse sampling
+                                diffuse_bounce = true;
                                 let diffuse_dir = diffuse(&normal);
                                 sample = sample.mul_element_wise(diffuse_dir.dot(normal) * color);
                                 ray.reset(intersection_point, diffuse_dir, f32::INFINITY);
                             }
                         }
                         &Material::Dielectric { refraction_index_n1, refraction_index_n2, color } => {
+                            diffuse_bounce = false;
                             if inside {
                                 let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
                                 let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
