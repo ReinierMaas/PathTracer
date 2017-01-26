@@ -1,3 +1,4 @@
+#![feature(thread_local)]
 #![allow(dead_code)]
 
 extern crate rand;
@@ -7,6 +8,7 @@ extern crate num_cpus;
 extern crate spmc;
 extern crate scoped_threadpool;
 extern crate tobj;
+extern crate thread_local;
 
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
@@ -102,10 +104,10 @@ fn main() {
 
     //let scene = Scene::<Sphere>::default_scene().expect("scene");
     //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/cube.obj")).expect("scene");
-    //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/dragon.obj")).expect("scene");
+    let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/dragon.obj")).expect("scene");
     //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/buddha.obj")).expect("scene");
     //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/rungholt.obj")).expect("scene");
-    let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/powerplant.obj")).expect("scene");
+    //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/powerplant.obj")).expect("scene");
     let mut camera = Camera::new(WIDTH, HEIGHT, scene);
 
 

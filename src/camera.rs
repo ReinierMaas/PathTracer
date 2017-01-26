@@ -76,9 +76,9 @@ impl<T: Primitive> Camera<T> {
             width: width,
             height: height,
             lens_size: 0.04,
-            //origin: Point3::new(-0.94, -0.037, -3.342),//normal
+            origin: Point3::new(-0.94, -0.037, -3.342),//normal
             //origin: Point3::new(150.94, 150.037, -3.342),//rungholt
-            origin: Point3::new(23000.0, 14000.0, 10000.0),//powerplant
+            //origin: Point3::new(23000.0, 14000.0, 10000.0),//powerplant
             target: Point3::new(-0.418, -0.026, -2.435),
             direction: Vector3::new(0.0, 0.0, 0.0),
             focal_distance: 0.0,
@@ -253,22 +253,23 @@ impl<T: Primitive> Camera<T> {
 
     /// sample a ray by shooting it through the scene
     pub fn sample(&self, ray: &mut Ray, depth: u32) -> Vector3<f32> {
+        let mut accumalated_color = Vector3::new(0.,0.,0.);
         let mut sample = Vector3::new(1., 1., 1.);
         for _ in 0..depth {
             match self.scene.bvh.intersect_closest(ray) {
                 None => {
-                    sample = sample.mul_element_wise(1.0 * self.scene.sample_skybox(ray.direction));
+                    accumalated_color += sample.mul_element_wise(0.1 * self.scene.sample_skybox(ray.direction));;
                     break;
                 },
                 Some(Intersection{normal, inside, material}) => {
                     let intersection_point = ray.intersection();
                     match material {
                         &Material::Emissive { color } => {
-                            sample = sample.mul_element_wise(color);
+                            accumalated_color += sample.mul_element_wise(color);
                             break;
                         },
                         &Material::Diffuse { speculaty, color} => {
-                            if inside { sample = Vector3::new(0.,0.,0.); break };
+                            if inside { break };
                             /*
                             let brdf = color / f32::consts::PI;
                             let random_light = self.scene.bvh.random_light();
@@ -355,7 +356,7 @@ impl<T: Primitive> Camera<T> {
                 }
             };
         }
-        sample
+        accumalated_color
     }
 
     /// generates a nice Ray (TODO better integer type)

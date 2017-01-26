@@ -2,6 +2,7 @@ extern crate cgmath;
 
 use rand;
 use std::f32;
+use std::sync::Mutex;
 
 use cgmath::Point3;
 use primitive::Primitive;
@@ -9,11 +10,13 @@ use primitive::aabb::AABB;
 
 use ray::{Ray,Intersection};
 
+thread_local!(static NODE_STACK: Mutex<Vec<usize>> = Mutex::new(Vec::new()));
+
 #[derive(Debug)]
 struct BVHNode {
     bounds: AABB,
-    left_first: usize,
-    count: usize,
+    left_first: u32,
+    count: u32,
 }
 
 #[derive(Debug)]
@@ -22,7 +25,6 @@ pub struct BVH<T: Primitive> {
     indices: Vec<usize>,
     lights: Vec<usize>,
     bvh_nodes: Vec<BVHNode>,
-    reserve_capacity: usize,
 }
 
 impl<T: Primitive> BVH<T> {
@@ -41,52 +43,30 @@ impl<T: Primitive> BVH<T> {
         bvh_nodes.push(BVHNode {
             bounds: objects.iter().fold(AABB::new(), |sum, val| sum.combine(&val.bounds())),
             left_first: 0,
-            count: len }
+            count: len as u32 }
         );
         let mut bvh = BVH {
             objects: objects,
             indices: indices,
             lights: lights,
             bvh_nodes: bvh_nodes,
-            reserve_capacity: 0,
         };
         bvh.subdivide();
-        bvh.reserve_capacity = bvh.reserve_capacity();
         bvh
     }
-    fn reserve_capacity(&self) -> usize {
-        let mut node_stack = Vec::new();
-        node_stack.push(0); // root node
-        let mut reserve_capacity: usize = node_stack.len();
-        while let Some(node_index) = node_stack.pop() {
-            let node = &self.bvh_nodes[node_index];
-            if node.count == 0 {
-                // internal node
-                node_stack.push(node.left_first + 1);
-                node_stack.push(node.left_first);
-                let len = node_stack.len();
-                if len > reserve_capacity {
-                    reserve_capacity = len;
-                }
-            }
-        }
-        println!("{:?}", reserve_capacity);
-        reserve_capacity
-    }
     fn subdivide(&mut self) {
-        let mut node_stack = Vec::with_capacity(self.reserve_capacity);
-        node_stack.push(0); // root node
-        while let Some(node_index) = node_stack.pop() {
+        NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(0)); // root node
+        while let Some(node_index) = NODE_STACK.with(|node_stack|node_stack.lock().unwrap().pop()) {
             if self.bvh_nodes[node_index].count > 2 && self.partition(node_index) {
-                let node = &self.bvh_nodes[node_index];
-                node_stack.push(node.left_first + 1);
-                node_stack.push(node.left_first);
+                let left = self.bvh_nodes[node_index].left_first as usize;
+                NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left + 1));
+                NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left));
             }
         }
     }
     fn partition(&mut self, node_index: usize) -> bool {
-        let first = self.bvh_nodes[node_index].left_first;
-        let count = self.bvh_nodes[node_index].count;
+        let first = self.bvh_nodes[node_index].left_first as usize;
+        let count = self.bvh_nodes[node_index].count as usize;
         let (axis, pivot) = self.surface_area_heuristic(first, count);
         // Best split axis selected
         let mut left_bound = AABB::new();
@@ -108,15 +88,15 @@ impl<T: Primitive> BVH<T> {
 
         //Split current node
         let left_index = self.bvh_nodes.len();
-        self.bvh_nodes[node_index].left_first = left_index;
+        self.bvh_nodes[node_index].left_first = left_index as u32;
         self.bvh_nodes[node_index].count = 0;
 
         self.bvh_nodes.push(
-            BVHNode { bounds : left_bound, left_first : first, count : pivot_index - first }
+            BVHNode { bounds : left_bound, left_first : first as u32, count : (pivot_index - first) as u32 }
         );
-        let left_count = self.bvh_nodes[left_index].count;
+        let left_count = self.bvh_nodes[left_index].count as usize;
         self.bvh_nodes.push(
-            BVHNode { bounds : right_bound, left_first : pivot_index, count : count - left_count }
+            BVHNode { bounds : right_bound, left_first : pivot_index as u32, count : (count - left_count) as u32 }
         );
 
         true
@@ -194,14 +174,13 @@ impl<T: Primitive> BVH<T> {
     }
     pub fn intersect_closest(&self, ray: &mut Ray) -> Option<Intersection> {
         let mut closest_intersection = None;
-        let mut node_stack = Vec::with_capacity(self.reserve_capacity);
-        node_stack.push(0); // root node
-        while let Some(node_index) = node_stack.pop() {
+        NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(0)); // root node
+        while let Some(node_index) = NODE_STACK.with(|node_stack|node_stack.lock().unwrap().pop()) {
             let node = &self.bvh_nodes[node_index];
             if let Some(_) = node.bounds.intersect(ray) { // prune stack pops that don't get intersected anymore
                 if node.count != 0 {
                     // leaf node
-                    for index in node.left_first..node.left_first + node.count {
+                    for index in node.left_first as usize..(node.left_first + node.count) as usize {
                         let object = &self.objects[self.indices[index]];
                         if let Some(intersection) = object.intersect(ray) {
                             closest_intersection = Some(intersection);
@@ -209,18 +188,19 @@ impl<T: Primitive> BVH<T> {
                     }
                 } else {
                     // internal node
-                    let tl = self.bvh_nodes[node.left_first].bounds.intersect(ray);
-                    let tr = self.bvh_nodes[node.left_first + 1].bounds.intersect(ray);
+                    let left = node.left_first as usize;
+                    let tl = self.bvh_nodes[left].bounds.intersect(ray);
+                    let tr = self.bvh_nodes[left + 1].bounds.intersect(ray);
                     match (tl,tr) {
                         (Some((tlmin, _)), Some((trmin, _))) => if tlmin <= trmin { // push happens in the reverse order LIFO
-                                    node_stack.push(node.left_first + 1);
-                                    node_stack.push(node.left_first);
+                                    NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left + 1));
+                                    NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left));
                                 } else {
-                                    node_stack.push(node.left_first);
-                                    node_stack.push(node.left_first + 1);
+                                    NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left));
+                                    NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left + 1));
                             },
-                        (Some(_), None) => node_stack.push(node.left_first),
-                        (None, Some(_)) => node_stack.push(node.left_first + 1),
+                        (Some(_), None) => NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left)),
+                        (None, Some(_)) => NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left + 1)),
                         (None, None) => {},
                     }
                 }
@@ -229,14 +209,13 @@ impl<T: Primitive> BVH<T> {
         closest_intersection
     }
     pub fn intersect_any(&self, ray: &mut Ray) -> Option<Intersection> {
-        let mut node_stack = Vec::with_capacity(self.reserve_capacity);
-        node_stack.push(0); // root node
-        while let Some(node_index) = node_stack.pop() {
+        NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(0)); // root node
+        while let Some(node_index) = NODE_STACK.with(|node_stack|node_stack.lock().unwrap().pop()) {
             let node = &self.bvh_nodes[node_index];
             if let Some(_) = node.bounds.intersect(ray) { // prune stack pops that don't get intersected anymore
                 if node.count != 0 {
                     // leaf node
-                    for index in node.left_first..node.left_first + node.count {
+                    for index in node.left_first as usize..(node.left_first + node.count) as usize {
                         let object = &self.objects[self.indices[index]];
                         if let Some(intersection) = object.intersect(ray) {
                             return Some(intersection);
@@ -244,18 +223,19 @@ impl<T: Primitive> BVH<T> {
                     }
                 } else {
                     // internal node
-                    let tl = self.bvh_nodes[node.left_first].bounds.intersect(ray);
-                    let tr = self.bvh_nodes[node.left_first + 1].bounds.intersect(ray);
+                    let left = node.left_first as usize;
+                    let tl = self.bvh_nodes[left].bounds.intersect(ray);
+                    let tr = self.bvh_nodes[left + 1].bounds.intersect(ray);
                     match (tl,tr) {
                         (Some((tlmin, _)), Some((trmin, _))) => if tlmin <= trmin { // push happens in the reverse order LIFO
-                                    node_stack.push(node.left_first + 1);
-                                    node_stack.push(node.left_first);
+                                    NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left + 1));
+                                    NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left));
                                 } else {
-                                    node_stack.push(node.left_first);
-                                    node_stack.push(node.left_first + 1);
+                                    NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left));
+                                    NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left + 1));
                             },
-                        (Some(_), None) => node_stack.push(node.left_first),
-                        (None, Some(_)) => node_stack.push(node.left_first + 1),
+                        (Some(_), None) => NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left)),
+                        (None, Some(_)) => NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left + 1)),
                         (None, None) => {},
                     }
                 }

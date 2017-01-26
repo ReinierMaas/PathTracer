@@ -3,6 +3,16 @@ name = "pathtracer"
 version = "0.1.0"
 authors = ["Arian van Putten <aeroboy94@gmail.com>", "Reinier Remco Maas <reiniermaas@hotmail.com>"]
 
+# # The release profile, used for `cargo build --release`.
+# [profile.release]
+# opt-level = 3
+# debug = true
+# # rpath = false
+# lto = true
+# # debug-assertions = false
+# codegen-units = 1
+# panic = 'abort'
+
 [dependencies]
 sdl2 = "*"
 cgmath = "*"
@@ -13,3 +23,4 @@ num_cpus = "*"
 scoped_threadpool = "*"
 rayon = "*"
 tobj = "*"
+thread_local = "*"

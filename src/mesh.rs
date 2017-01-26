@@ -53,15 +53,15 @@ pub fn load_mesh(path: &Path) -> Vec<Triangle> {
                             }
                         }
                     } else {
-                        Material::Dielectric{
-                            refraction_index_n1: 1.0,
-                            refraction_index_n2: 1.3,
-                            color: Vector3::new(0.9,0.8,0.7),
-                        }
-                        //Material::Diffuse {
-                        //    speculaty: 0.,
-                        //    color: Vector3::new(1.0,1.0,1.0),
+                        //Material::Dielectric{
+                        //    refraction_index_n1: 1.0,
+                        //    refraction_index_n2: 1.3,
+                        //    color: Vector3::new(0.9,0.8,0.7),
                         //}
+                        Material::Diffuse {
+                            speculaty: 0.,
+                            color: Vector3::new(0.9,0.9,0.9),
+                        }
                     }
                 },
         }));
