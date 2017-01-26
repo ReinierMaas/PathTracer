@@ -66,44 +66,49 @@ impl<T: Primitive> BVH<T> {
         }
     }
     fn partition(&mut self, node_index: usize) -> bool {
+        let bounds = self.bvh_nodes[node_index].bounds;
         let first = self.bvh_nodes[node_index].left_first as usize;
         let count = self.bvh_nodes[node_index].count as usize;
-        let (axis, pivot) = self.surface_area_heuristic(first, count);
-        // Best split axis selected
-        let mut left_bound = AABB::new();
-        let mut right_bound = AABB::new();
+        if let Some((axis, pivot)) = self.surface_area_heuristic(bounds, first, count) {
+            // Best split axis selected
+            let mut left_bound = AABB::new();
+            let mut right_bound = AABB::new();
 
-        let mut pivot_index = first;
-        for index in first..first + count {
-            let bound = self.objects[self.indices[index]].bounds();
-            let centre_on_axis = self.objects[self.indices[index]].centre()[axis];
-            if centre_on_axis <= pivot {
-                left_bound = left_bound.combine(&bound);
-                self.indices.swap(pivot_index, index);
-                pivot_index += 1;
+            let mut pivot_index = first;
+            for index in first..first + count {
+                let bound = self.objects[self.indices[index]].bounds();
+                let centre_on_axis = self.objects[self.indices[index]].centre()[axis];
+                if centre_on_axis <= pivot {
+                    left_bound = left_bound.combine(&bound);
+                    self.indices.swap(pivot_index, index);
+                    pivot_index += 1;
+                }
+                else {
+                    right_bound = right_bound.combine(&bound);
+                }
             }
-            else {
-                right_bound = right_bound.combine(&bound);
-            }
+
+            //Split current node
+            let left_index = self.bvh_nodes.len();
+            self.bvh_nodes[node_index].left_first = left_index as u32;
+            self.bvh_nodes[node_index].count = 0;
+
+            self.bvh_nodes.push(
+                BVHNode { bounds : left_bound, left_first : first as u32, count : (pivot_index - first) as u32 }
+            );
+            let left_count = self.bvh_nodes[left_index].count as usize;
+            self.bvh_nodes.push(
+                BVHNode { bounds : right_bound, left_first : pivot_index as u32, count : (count - left_count) as u32 }
+            );
+
+            true
+        } else {
+            false
         }
-
-        //Split current node
-        let left_index = self.bvh_nodes.len();
-        self.bvh_nodes[node_index].left_first = left_index as u32;
-        self.bvh_nodes[node_index].count = 0;
-
-        self.bvh_nodes.push(
-            BVHNode { bounds : left_bound, left_first : first as u32, count : (pivot_index - first) as u32 }
-        );
-        let left_count = self.bvh_nodes[left_index].count as usize;
-        self.bvh_nodes.push(
-            BVHNode { bounds : right_bound, left_first : pivot_index as u32, count : (count - left_count) as u32 }
-        );
-
-        true
     }
-    fn surface_area_heuristic(&self, first: usize, count: usize) -> (usize, f32) {
-        // TODO: best split plane based on surface area heuristic
+    fn surface_area_heuristic(&self, bounds: AABB, first: usize, count: usize) -> Option<(usize, f32)> {
+        let sah_parent = bounds.area() * count as f32;
+        // Best split plane based on surface area heuristic
         let mut centre_bound = AABB::new();
         for index in first..first + count {
             let centre = &self.objects[self.indices[index]].centre();
@@ -130,9 +135,9 @@ impl<T: Primitive> BVH<T> {
             }
         }
 
-        let mut min_axis = 0;
-        let mut min_bin = 0;
-        let mut min_sah = f32::MAX;
+        let mut min_axis = None;
+        let mut min_bin = None;
+        let mut min_sah = sah_parent;
         for axis in 0..3 {
             let axis_offset = axis * 8;
 
@@ -152,17 +157,21 @@ impl<T: Primitive> BVH<T> {
             for bin_offset in 0..8 {
                 bounds_left = bounds_left.combine(&bounds[axis_offset + bin_offset]);
                 primitives_left += primitives[axis_offset + bin_offset];
-                let sah = primitives_left as f32 * bounds_left.area() + primitives_right[bin_offset] as f32 * bounds_right[bin_offset].area();
+                let sah: f32 = primitives_left as f32 * bounds_left.area() + primitives_right[bin_offset] as f32 * bounds_right[bin_offset].area();
 
                 // save lowest estimated intersection cost
                 if sah < min_sah {
-                    min_axis = axis;
-                    min_bin = bin_offset;
+                    min_axis = Some(axis);
+                    min_bin = Some(bin_offset);
                     min_sah = sah;
                 }
             }
         }
-        (min_axis, centre_bound.min[min_axis] + (1 + min_bin) as f32 * axis_delta[min_axis])
+        if let (Some(min_axis), Some(min_bin)) = (min_axis, min_bin) {
+            Some((min_axis, centre_bound.min[min_axis] + (1 + min_bin) as f32 * axis_delta[min_axis]))
+        } else {
+            None
+        }
         //// median split
         //let mut axis = 0;
         //for a in 1..3 {

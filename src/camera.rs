@@ -32,6 +32,8 @@ pub struct Camera<T: Primitive> {
     height: usize,
     lens_size: f32,
     scene: Scene<T>,
+
+    depth: u32,
 }
 
 fn refract(direction: &Vector3<f32>, normal: &Vector3<f32>, n1: f32, n2: f32) -> Option<Vector3<f32>> {
@@ -75,9 +77,10 @@ impl<T: Primitive> Camera<T> {
         let mut camera = Camera {
             width: width,
             height: height,
+            depth: 512,
             lens_size: 0.04,
-            origin: Point3::new(-0.94, -0.037, -3.342),//normal
-            //origin: Point3::new(150.94, 150.037, -3.342),//rungholt
+            //origin: Point3::new(-0.94, -0.037, -3.342),//normal
+            origin: Point3::new(150.94, 150.037, -3.342),//rungholt
             //origin: Point3::new(23000.0, 14000.0, 10000.0),//powerplant
             target: Point3::new(-0.418, -0.026, -2.435),
             direction: Vector3::new(0.0, 0.0, 0.0),
@@ -116,6 +119,30 @@ impl<T: Primitive> Camera<T> {
         } else {
             changed
         };
+        let changed = if key_presses.contains(&Keycode::E) {
+            self.origin = self.origin + 10.0 * self.direction;
+            self.target = self.target + 10.0 * self.direction;
+            true
+        } else {
+            changed
+        };
+        let changed = if key_presses.contains(&Keycode::Q) {
+            self.origin = self.origin + -10.0 * self.direction;
+            self.target = self.target + -10.0 * self.direction;
+            true
+        } else {
+            changed
+        };
+        let changed = if key_presses.contains(&Keycode::H) {
+            self.depth = if self.depth == 512 { 2 } else { 512 };
+            println!("depth: {:?}", 2);
+            true
+        } else {
+            changed
+        };
+        if key_presses.contains(&Keycode::P) {
+            println!("origin: {:?}, direction: {:?}", self.origin, self.direction);
+        }
         let changed = if key_presses.contains(&Keycode::S) {
             self.origin = self.origin + (-0.1 * self.direction);
             true
@@ -234,11 +261,9 @@ impl<T: Primitive> Camera<T> {
 
         let mut ray = Ray::new(self.origin, self.direction, f32::INFINITY);
 
-        let mut distance = 0.0;
-
         let aspect_ratio = (self.width as f32) / (self.height as f32);
 
-        self.focal_distance = f32::min(20.0, self.focus(&mut ray, distance, 5));
+        self.focal_distance = f32::min(20.0, self.focus(&mut ray, 0.0, 5));
 
         let c = self.origin + self.focal_distance * self.direction;
 
@@ -259,7 +284,7 @@ impl<T: Primitive> Camera<T> {
         for _ in 0..depth {
             match self.scene.bvh.intersect_closest(ray) {
                 None => {
-                    accumalated_color += sample.mul_element_wise(0.01 * self.scene.sample_skybox(ray.direction));;
+                    accumalated_color += sample.mul_element_wise(0.1 * self.scene.sample_skybox(ray.direction));;
                     break;
                 },
                 Some(Intersection{normal, inside, material}) => {

@@ -37,15 +37,27 @@ impl<T: Primitive> Scene<T> {
     pub fn scene(path: &Path) -> Result<Scene<Triangle>, io::Error> {
         let mut triangles = mesh::load_mesh(path);
 
-        triangles.push(Triangle{
-            position0: Point3::new(2.0,2.0,2.0),
-            position1: Point3::new(1.0,2.0,2.0),
-            position2: Point3::new(2.0,2.0,1.0),
+
+        //triangles.push(Triangle{
+        //    position0: Point3::new(2.0,2.0,2.0),
+        //    position1: Point3::new(1.0,2.0,2.0),
+        //    position2: Point3::new(2.0,2.0,1.0),
+        //    normal0: Vector3::new(0.0,-1.0,0.0),
+        //    normal1: Vector3::new(0.0,-1.0,0.0),
+        //    normal2: Vector3::new(0.0,-1.0,0.0),
+        //    material: Material::Emissive {
+        //        color: material::LIGHT_COLOR,
+        //    },
+        //});
+        triangles.push(Triangle{ // rungholt
+            position0: Point3::new(300.0,300.0,300.0),
+            position1: Point3::new(150.0,300.0,300.0),
+            position2: Point3::new(300.0,300.0,150.0),
             normal0: Vector3::new(0.0,-1.0,0.0),
             normal1: Vector3::new(0.0,-1.0,0.0),
             normal2: Vector3::new(0.0,-1.0,0.0),
             material: Material::Emissive {
-                color: material::LIGHT_COLOR,
+                color: 150.0 * material::LIGHT_COLOR,
             },
         });
 
