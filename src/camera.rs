@@ -76,7 +76,9 @@ impl<T: Primitive> Camera<T> {
             width: width,
             height: height,
             lens_size: 0.04,
-            origin: Point3::new(-0.94, -0.037, -3.342),
+            //origin: Point3::new(-0.94, -0.037, -3.342),//normal
+            //origin: Point3::new(150.94, 150.037, -3.342),//rungholt
+            origin: Point3::new(23000.0, 14000.0, 10000.0),//powerplant
             target: Point3::new(-0.418, -0.026, -2.435),
             direction: Vector3::new(0.0, 0.0, 0.0),
             focal_distance: 0.0,
@@ -169,7 +171,7 @@ impl<T: Primitive> Camera<T> {
 
     fn focus(&self, mut ray : &mut Ray, distance: f32, depth: u8) -> f32 {
         if depth == 0 { return distance }
-        match self.scene.intersect_closest(&mut ray) {
+        match self.scene.bvh.intersect_closest(&mut ray) {
             Some(ref intersection) => {
                 let distance = distance + ray.distance;
                 match intersection.material {
@@ -179,7 +181,7 @@ impl<T: Primitive> Camera<T> {
                         ray.reset(intersection_point, reflect, f32::INFINITY);
                         return self.focus(ray, distance, depth - 1);
                     },
-                    &Material::Dielectic{refraction_index_n1, refraction_index_n2, ..} => {
+                    &Material::Dielectric{refraction_index_n1, refraction_index_n2, ..} => {
                         let normal = intersection.normal;
                         let inside = intersection.inside;
                         let intersection_point = ray.intersection();
@@ -253,9 +255,9 @@ impl<T: Primitive> Camera<T> {
     pub fn sample(&self, ray: &mut Ray, depth: u32) -> Vector3<f32> {
         let mut sample = Vector3::new(1., 1., 1.);
         for _ in 0..depth {
-            match self.scene.intersect_closest(ray) {
+            match self.scene.bvh.intersect_closest(ray) {
                 None => {
-                    sample = sample.mul_element_wise(0.0 * self.scene.sample_skybox(ray.direction));
+                    sample = sample.mul_element_wise(1.0 * self.scene.sample_skybox(ray.direction));
                     break;
                 },
                 Some(Intersection{normal, inside, material}) => {
@@ -267,6 +269,7 @@ impl<T: Primitive> Camera<T> {
                         },
                         &Material::Diffuse { speculaty, color} => {
                             if inside { sample = Vector3::new(0.,0.,0.); break };
+                            /*
                             let brdf = color / f32::consts::PI;
                             let random_light = self.scene.bvh.random_light();
                             let (point_on_light, area)= random_light.random_point();
@@ -290,7 +293,8 @@ impl<T: Primitive> Camera<T> {
                                         },
                                     }
                                 }
-                            } 
+                            }
+                            */
                             let Closed01(r0) = rand::random::<Closed01<f32>>();
                             if r0 < speculaty {
                                 // Specular sampling
@@ -304,7 +308,7 @@ impl<T: Primitive> Camera<T> {
                                 ray.reset(intersection_point, diffuse_dir, f32::INFINITY);
                             }
                         }
-                        &Material::Dielectic { refraction_index_n1, refraction_index_n2, color } => {
+                        &Material::Dielectric { refraction_index_n1, refraction_index_n2, color } => {
                             if inside {
                                 let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
                                 let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());

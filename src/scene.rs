@@ -1,6 +1,7 @@
 extern crate cgmath;
 use self::cgmath::{Vector3, Point3};
 use std::io;
+use std::path::Path;
 use std::mem;
 use rand;
 use ray::{Ray,Intersection};
@@ -11,7 +12,9 @@ use self::memmap::*;
 
 use primitive::Primitive;
 use primitive::sphere::Sphere;
+use primitive::triangle::Triangle;
 use material::Material;
+use mesh;
 
 #[derive(Debug)]
 pub struct Scene<T: Primitive> {
@@ -29,8 +32,11 @@ impl<T: Primitive> Scene<T> {
         };
         Ok(scene)
     }
-    pub fn intersect_closest(&self, ray : & mut Ray) -> Option<Intersection> {
-        self.bvh.intersect_closest(ray)
+
+    pub fn scene(path: &Path) -> Result<Scene<Triangle>, io::Error> {
+        let triangles = mesh::load_mesh(path);
+        let scene = try!(Scene::new(triangles));
+        Ok(scene)
     }
 
     pub fn default_scene() -> Result<Scene<Sphere>, io::Error> {
@@ -60,7 +66,7 @@ impl<T: Primitive> Scene<T> {
         spheres.push(Sphere {
             position: Point3::new(0.0,0.0,-2.0),
             radius: 0.3,
-            material: Material::Dielectic {
+            material: Material::Dielectric {
                 refraction_index_n1: 1.,
                 refraction_index_n2: 1.3,
                 color: Vector3::new(0.1,1.0,0.1),

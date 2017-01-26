@@ -7,7 +7,7 @@ pub enum Material {
         speculaty: f32,
         color: Vector3<f32>,
     },
-    Dielectic {
+    Dielectric {
         refraction_index_n1: f32,
         refraction_index_n2: f32,
         color: Vector3<f32>,

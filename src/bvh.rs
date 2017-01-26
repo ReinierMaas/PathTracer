@@ -50,7 +50,7 @@ impl<T: Primitive> BVH<T> {
             bvh_nodes: bvh_nodes,
             reserve_capacity: 0,
         };
-        bvh.subdivide(0);
+        bvh.subdivide();
         bvh.reserve_capacity = bvh.reserve_capacity();
         bvh
     }
@@ -73,11 +73,15 @@ impl<T: Primitive> BVH<T> {
         println!("{:?}", reserve_capacity);
         reserve_capacity
     }
-    fn subdivide(&mut self, node_index: usize) {
-        if self.bvh_nodes[node_index].count > 2 && self.partition(node_index) {
-            let left = self.bvh_nodes[node_index].left_first;
-            self.subdivide(left);
-            self.subdivide(left + 1);
+    fn subdivide(&mut self) {
+        let mut node_stack = Vec::with_capacity(self.reserve_capacity);
+        node_stack.push(0); // root node
+        while let Some(node_index) = node_stack.pop() {
+            if self.bvh_nodes[node_index].count > 2 && self.partition(node_index) {
+                let node = &self.bvh_nodes[node_index];
+                node_stack.push(node.left_first + 1);
+                node_stack.push(node.left_first);
+            }
         }
     }
     fn partition(&mut self, node_index: usize) -> bool {
