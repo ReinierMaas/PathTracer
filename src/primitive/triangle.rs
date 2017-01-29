@@ -2,7 +2,7 @@ extern crate cgmath;
 use self::cgmath::{Vector3, Point3, InnerSpace, EuclideanSpace};
 use std::f32;
 use rand;
-use rand::Closed01;
+use rand::Open01;
 
 use super::Primitive;
 use super::aabb::AABB;
@@ -94,8 +94,9 @@ impl Primitive for Triangle {
         }
     }
     fn random_point(&self) -> (Point3<f32>, f32) {
-        let Closed01(u) = rand::random::<Closed01<f32>>();
-        let Closed01(v) = rand::random::<Closed01<f32>>();
+        let Open01(u) = rand::random::<Open01<f32>>(); // 0 < u < 1
+        let Open01(v) = rand::random::<Open01<f32>>(); // 0 < v < 1
+        let v = (1. - u) * v; //  0 < u + v < 1
         let mut edge1 = self.position1 - self.position0;
         let mut edge2 = self.position2 - self.position0;
         let point = self.position0 + u * edge1 + v* edge2;

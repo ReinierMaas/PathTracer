@@ -104,9 +104,9 @@ fn main() {
 
     //let scene = Scene::<Sphere>::default_scene().expect("scene");
     //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/cube.obj")).expect("scene");
-    //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/dragon.obj")).expect("scene");
+    let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/dragon.obj")).expect("scene");
     //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/buddha.obj")).expect("scene");
-    let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/rungholt.obj")).expect("scene");
+    //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/rungholt.obj")).expect("scene");
     //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/powerplant.obj")).expect("scene");
     let mut camera = Camera::new(WIDTH, HEIGHT, scene);
 
@@ -114,7 +114,6 @@ fn main() {
     let num_cpus = num_cpus::get();
     let mut key_presses = HashSet::new();
     let mut pool = scoped_threadpool::Pool::new(num_cpus as u32);
-
 
     'running: loop {
         for event in event_pump.poll_iter() {

@@ -6,7 +6,7 @@ use cgmath::Vector3;
 use primitive::triangle::Triangle;
 use material::Material;
 
-pub fn load_mesh(path: &Path) -> Vec<Triangle> {
+pub fn load_mesh(path: &Path, backup_material: Material) -> Vec<Triangle> {
     let obj_data = tobj::load_obj(path);
     let (models, materials) = obj_data.expect("error with file");
     let mut triangles = Vec::with_capacity(models.iter().map(|model|model.mesh.indices.len() / 3).sum());
@@ -53,15 +53,16 @@ pub fn load_mesh(path: &Path) -> Vec<Triangle> {
                             }
                         }
                     } else {
+                        backup_material
                         //Material::Dielectric{
                         //    refraction_index_n1: 1.0,
                         //    refraction_index_n2: 1.3,
                         //    color: Vector3::new(0.9,0.8,0.7),
                         //}
-                        Material::Diffuse {
-                            speculaty: 0.,
-                            color: Vector3::new(0.9,0.9,0.9),
-                        }
+                        //Material::Diffuse {
+                        //    speculaty: 0.,
+                        //    color: Vector3::new(0.9,0.9,0.9),
+                        //}
                     }
                 },
         }));

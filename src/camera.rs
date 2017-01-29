@@ -79,10 +79,12 @@ impl<T: Primitive> Camera<T> {
             height: height,
             depth: 512,
             lens_size: 0.04,
+            origin: Point3::new(-1.6, 0.0, -1.3),//normal
             //origin: Point3::new(-0.94, -0.037, -3.342),//normal
-            origin: Point3::new(150.94, 150.037, -3.342),//rungholt
+            //origin: Point3::new(150.94, 150.037, -3.342),//rungholt
             //origin: Point3::new(23000.0, 14000.0, 10000.0),//powerplant
-            target: Point3::new(-0.418, -0.026, -2.435),
+            target: Point3::new(0.7, 0.0, 0.6),
+            //target: Point3::new(-0.418, -0.026, -2.435),
             direction: Vector3::new(0.0, 0.0, 0.0),
             focal_distance: 0.0,
             p1: Point3::new(0.0, 0.0, 0.0),
@@ -279,38 +281,39 @@ impl<T: Primitive> Camera<T> {
     /// sample a ray by shooting it through the scene
     pub fn sample(&self, ray: &mut Ray, depth: u32) -> Vector3<f32> {
         let mut accumalated_color = Vector3::new(0.,0.,0.);
-        let mut sample = Vector3::new(1., 1., 1.);
+        let mut transport = Vector3::new(1., 1., 1.);
         let mut diffuse_bounce = false;
         for _ in 0..depth {
             match self.scene.bvh.intersect_closest(ray) {
                 None => {
-                    accumalated_color += sample.mul_element_wise(0.1 * self.scene.sample_skybox(ray.direction));;
+                    accumalated_color += transport.mul_element_wise(0.1 * self.scene.sample_skybox(ray.direction));;
                     break;
                 },
                 Some(Intersection{normal, inside, material}) => {
                     let intersection_point = ray.intersection();
                     match material {
                         &Material::Emissive { color } => {
-                            if !diffuse_bounce { accumalated_color += sample.mul_element_wise(color); }
+                            if !diffuse_bounce { accumalated_color += transport.mul_element_wise(color); }
                             break;
                         },
                         &Material::Diffuse { speculaty, color} => {
                             if inside { break };
-                            if let Some(random_light) = self.scene.bvh.random_light() {
+                            if let Some((nr_ligths, random_light)) = self.scene.bvh.random_light() {
                                 let (point_on_light, area)= random_light.random_point();
                                 let light_dir = (point_on_light - intersection_point).normalize();
                                 let mut god_ray = Ray::new(intersection_point + f32::EPSILON * light_dir, light_dir, f32::INFINITY);
-                                //let mut ld = Vector3::new(0.0,0.0,0.0);
                                 if let Some(intersection_on_light) = random_light.intersect(&mut god_ray) {
                                     let cos_intersection = normal.dot(light_dir);
                                     let cos_light = -intersection_on_light.normal.dot(light_dir);
                                     if cos_intersection > 0.0 && cos_light > 0.0 {
-                                        god_ray.distance -= f32::EPSILON;
+                                        // light is not behind surface point, trace shadow ray
+                                        god_ray.distance -= f32::EPSILON; // ray should not hit the light in the intersect_any test
                                         if let None = self.scene.bvh.intersect_any(&mut god_ray) {
                                             let brdf = color * f32::consts::FRAC_1_PI;
                                             let light_color = random_light.is_light().unwrap();
                                             let solid_angle = (cos_light * area) / (god_ray.distance * god_ray.distance);
-                                            let nee_estimate = sample.mul_element_wise(solid_angle * cos_intersection * light_color.mul_element_wise(brdf));
+                                            // the estimated times this light gets sampled is 1 / nr_ligths, so we multiply this sample by nr_ligths
+                                            let nee_estimate = transport.mul_element_wise(nr_ligths as f32 * solid_angle * cos_intersection * light_color.mul_element_wise(brdf));
                                             accumalated_color += nee_estimate;
                                         }
                                     }
@@ -322,13 +325,23 @@ impl<T: Primitive> Camera<T> {
                                 // Specular sampling
                                 diffuse_bounce = false;
                                 let reflected_dir = reflect(&ray.direction, &normal);
-                                sample = sample.mul_element_wise(color);
+                                transport = transport.mul_element_wise(color);
                                 ray.reset(intersection_point, reflected_dir, f32::INFINITY);
                             } else {
+                                // russian_roulette only rays on a diffuse surface which already sent their nex_event_estimation ray
+                                let Closed01(russian_roulette) = rand::random::<Closed01<f32>>();
+                                let survival = transport.max().max(0.1); //minimum of 0.1 chance to survive and maximum of transport
+                                if russian_roulette < survival {
+                                    transport /= survival;
+                                } else {
+                                    break;
+                                }
                                 // Diffuse sampling
                                 diffuse_bounce = true;
                                 let diffuse_dir = diffuse(&normal);
-                                sample = sample.mul_element_wise(diffuse_dir.dot(normal) * color);
+                                let brdf = f32::consts::FRAC_1_PI * color;
+                                let cos_intersection = diffuse_dir.dot(normal);
+                                transport = transport.mul_element_wise(2.0 * f32::consts::PI * cos_intersection * brdf);
                                 ray.reset(intersection_point, diffuse_dir, f32::INFINITY);
                             }
                         }
@@ -337,7 +350,7 @@ impl<T: Primitive> Camera<T> {
                             if inside {
                                 let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
                                 let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());
-                                sample = sample.mul_element_wise(transparency);
+                                transport = transport.mul_element_wise(transparency);
                             }
                             let refracted_dir = if inside {
                                     refract(&ray.direction, &-normal, refraction_index_n2, refraction_index_n1)
@@ -354,7 +367,7 @@ impl<T: Primitive> Camera<T> {
                                 if r0 < schlick_reflection {
                                     // Reflected ray
                                     if !inside {
-                                        sample = sample.mul_element_wise(color);
+                                        transport = transport.mul_element_wise(color);
                                     }
                                     let reflected_dir = if inside {
                                             reflect(&ray.direction, &-normal)
@@ -379,13 +392,6 @@ impl<T: Primitive> Camera<T> {
                     }
                 }
             };
-            let Closed01(russian_roulette) = rand::random::<Closed01<f32>>();
-            let survival = sample.max().max(0.1);
-            if russian_roulette < survival {
-                sample /= survival;
-            } else {
-                break;
-            }
         }
         accumalated_color
     }

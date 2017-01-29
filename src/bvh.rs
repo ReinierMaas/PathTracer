@@ -35,7 +35,7 @@ impl<T: Primitive> BVH<T> {
         for object in &objects {
             let count = indices.len();
             indices.push(count);
-            if let Some(a) = object.is_light() {
+            if let Some(_) = object.is_light() {
                 lights.push(count);
             }
         }
@@ -254,7 +254,7 @@ impl<T: Primitive> BVH<T> {
         None
     }
 
-    pub fn random_light(&self) -> Option<&T> {
+    pub fn random_light(&self) -> Option<(usize, &T)> {
         if self.lights.len() == 0 {
             None
         } else {
@@ -263,7 +263,7 @@ impl<T: Primitive> BVH<T> {
             let index_range: Range<usize> = Range::new(0, self.lights.len());
             let i = index_range.ind_sample(&mut rng);
             let obj_idx = self.lights[i];
-            Some(&self.objects[obj_idx])
+            Some((self.lights.len(), &self.objects[obj_idx]))
         }
     }
 }

@@ -35,31 +35,63 @@ impl<T: Primitive> Scene<T> {
     }
 
     pub fn scene(path: &Path) -> Result<Scene<Triangle>, io::Error> {
-        let mut triangles = mesh::load_mesh(path);
+        let mut triangles = mesh::load_mesh(path, Material::Dielectric{
+            refraction_index_n1: 1.0,
+            refraction_index_n2: 1.5,
+            color: Vector3::new(0.9,0.8,0.7),
+        });
 
-
-        //triangles.push(Triangle{
-        //    position0: Point3::new(2.0,2.0,2.0),
-        //    position1: Point3::new(1.0,2.0,2.0),
-        //    position2: Point3::new(2.0,2.0,1.0),
-        //    normal0: Vector3::new(0.0,-1.0,0.0),
-        //    normal1: Vector3::new(0.0,-1.0,0.0),
-        //    normal2: Vector3::new(0.0,-1.0,0.0),
-        //    material: Material::Emissive {
-        //        color: material::LIGHT_COLOR,
-        //    },
-        //});
-        triangles.push(Triangle{ // rungholt
-            position0: Point3::new(300.0,300.0,300.0),
-            position1: Point3::new(150.0,300.0,300.0),
-            position2: Point3::new(300.0,300.0,150.0),
+        // Light
+        triangles.push(Triangle{
+            position0: Point3::new(2.0,2.0,2.0),
+            position1: Point3::new(1.0,2.0,2.0),
+            position2: Point3::new(2.0,2.0,1.0),
             normal0: Vector3::new(0.0,-1.0,0.0),
             normal1: Vector3::new(0.0,-1.0,0.0),
             normal2: Vector3::new(0.0,-1.0,0.0),
             material: Material::Emissive {
-                color: 150.0 * material::LIGHT_COLOR,
+                color: material::LIGHT_COLOR,
             },
         });
+        // Floor
+        triangles.push(Triangle{
+            position0: Point3::new(200.0,-0.3,200.0),
+            position1: Point3::new(200.0,-0.3,-200.0),
+            position2: Point3::new(-200.0,-0.3,200.0),
+            normal0: Vector3::new(0.0,1.0,0.0),
+            normal1: Vector3::new(0.0,1.0,0.0),
+            normal2: Vector3::new(0.0,1.0,0.0),
+            material: Material::Diffuse {
+                speculaty: 0.5,
+                color: Vector3::new(0.9,0.9,0.9),
+            },
+        });
+        triangles.push(Triangle{
+            position0: Point3::new(-200.0,-0.3,-200.0),
+            position1: Point3::new(-200.0,-0.3,200.0),
+            position2: Point3::new(200.0,-0.3,-200.0),
+            normal0: Vector3::new(0.0,1.0,0.0),
+            normal1: Vector3::new(0.0,1.0,0.0),
+            normal2: Vector3::new(0.0,1.0,0.0),
+            material: Material::Diffuse {
+                speculaty: 0.5,
+                color: Vector3::new(0.9,0.9,0.9),
+            },
+        });
+
+
+        // Rungholt large light
+        //triangles.push(Triangle{
+        //    position0: Point3::new(300.0,300.0,300.0),
+        //    position1: Point3::new(150.0,300.0,300.0),
+        //    position2: Point3::new(300.0,300.0,150.0),
+        //    normal0: Vector3::new(0.0,-1.0,0.0),
+        //    normal1: Vector3::new(0.0,-1.0,0.0),
+        //    normal2: Vector3::new(0.0,-1.0,0.0),
+        //    material: Material::Emissive {
+        //        color: 150.0 * material::LIGHT_COLOR,
+        //    },
+        //});
 
         let scene = try!(Scene::new(triangles));
         Ok(scene)
