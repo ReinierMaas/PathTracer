@@ -314,7 +314,7 @@ impl<T: Primitive> Camera<T> {
                             if let Some((nr_ligths, random_light)) = self.scene.bvh.random_light() {
                                 let (point_on_light, area)= random_light.random_point();
                                 let light_dir = (point_on_light - intersection_point).normalize();
-                                let mut god_ray = Ray::new(intersection_point + f32::EPSILON * light_dir, light_dir, f32::INFINITY);
+                                let mut god_ray = Ray::new(intersection_point + 20. * f32::EPSILON * light_dir, light_dir, f32::INFINITY);
                                 if let Some(intersection_on_light) = random_light.intersect(&mut god_ray) {
                                     let cos_intersection = normal.dot(light_dir);
                                     let cos_light = -intersection_on_light.normal.dot(light_dir);
@@ -322,11 +322,12 @@ impl<T: Primitive> Camera<T> {
                                         // light is not behind surface point, trace shadow ray
                                         god_ray.distance -= f32::EPSILON; // ray should not hit the light in the intersect_any test
                                         if let None = self.scene.bvh.intersect_any(&mut god_ray) {
-                                            let brdf = color * f32::consts::FRAC_1_PI;
-                                            let light_color = random_light.is_light().unwrap();
+                                            let brdf = f32::consts::FRAC_1_PI * color;
+                                            let light_color = random_light.is_light().unwrap(); // we selected a light
                                             let solid_angle = (cos_light * area) / (god_ray.distance * god_ray.distance);
+                                            let light_pdf = 1.0 / solid_angle;
                                             // the estimated times this light gets sampled is 1 / nr_ligths, so we multiply this sample by nr_ligths
-                                            let nee_estimate = transport.mul_element_wise(nr_ligths as f32 * solid_angle * cos_intersection * light_color.mul_element_wise(brdf));
+                                            let nee_estimate = nr_ligths as f32 * transport.mul_element_wise((cos_intersection / light_pdf) * light_color.mul_element_wise(brdf));
                                             accumalated_color += nee_estimate;
                                         }
                                     }
@@ -354,8 +355,8 @@ impl<T: Primitive> Camera<T> {
                                 let diffuse_dir = cosine_weighted_diffuse(&normal);
                                 let cos_intersection = diffuse_dir.dot(normal);
                                 let brdf = f32::consts::FRAC_1_PI * color;
-                                let pdf = f32::consts::FRAC_1_PI * cos_intersection;
-                                transport = transport.mul_element_wise(cos_intersection * brdf / pdf);
+                                let hemisphere_pdf = f32::consts::FRAC_1_PI * cos_intersection;
+                                transport = transport.mul_element_wise((cos_intersection / hemisphere_pdf) * brdf);
                                 ray.reset(intersection_point, diffuse_dir, f32::INFINITY);
                             }
                         }
