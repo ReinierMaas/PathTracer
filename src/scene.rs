@@ -3,8 +3,6 @@ use self::cgmath::{Vector3, Point3};
 use std::io;
 use std::path::Path;
 use std::mem;
-use rand;
-use ray::{Ray,Intersection};
 use bvh::BVH;
 use std::f32::consts::FRAC_1_PI;
 extern crate memmap;
@@ -101,15 +99,6 @@ impl<T: Primitive> Scene<T> {
         print!("Setting up default_scene\n");
         let mut spheres = Vec::new();
         spheres.push(Sphere::light(Point3::new(2.7,1.7,-0.5), 0.3));
-
-        let bottom_plane = Sphere {
-            position: Point3::new(0.0,-4999.0,0.0),
-            radius: 4998.5,
-            material: Material::Diffuse {
-                speculaty: 0.,
-                color: Vector3::new(0.0,1.0,1.0),
-            },
-        };
 
         //spheres.push(bottom_plane);
         spheres.push(Sphere {

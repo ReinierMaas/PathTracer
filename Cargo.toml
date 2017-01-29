@@ -6,12 +6,10 @@ authors = ["Arian van Putten <aeroboy94@gmail.com>", "Reinier Remco Maas <reinie
 # # The release profile, used for `cargo build --release`.
 [profile.release]
 # opt-level = 3
-debug = true
-# # rpath = false
+# debug = true
 # lto = true
-# # debug-assertions = false
+# debug-assertions = false
 # codegen-units = 1
-# panic = 'abort'
 
 [dependencies]
 sdl2 = "*"

@@ -295,18 +295,18 @@ impl<T: Primitive> Camera<T> {
     pub fn sample(&self, ray: &mut Ray, depth: u32) -> Vector3<f32> {
         let mut accumalated_color = Vector3::new(0.,0.,0.);
         let mut transport = Vector3::new(1., 1., 1.);
-        let mut diffuse_bounce = false;
+        let mut already_intersected = None;
         for _ in 0..depth {
-            match self.scene.bvh.intersect_closest(ray) {
+            match if let Some(intersection) = already_intersected { already_intersected = None; intersection } else { self.scene.bvh.intersect_closest(ray) } {
                 None => {
                     accumalated_color += transport.mul_element_wise(0.01 * self.scene.sample_skybox(ray.direction));;
                     break;
                 },
-                Some(Intersection{normal, inside, material}) => {
+                Some(Intersection{normal, inside, area:_, material}) => {
                     let intersection_point = ray.intersection();
                     match material {
                         &Material::Emissive { color } => {
-                            if !diffuse_bounce { accumalated_color += transport.mul_element_wise(color); }
+                            accumalated_color += transport.mul_element_wise(color);
                             break;
                         },
                         &Material::Diffuse { speculaty, color} => {
@@ -340,7 +340,6 @@ impl<T: Primitive> Camera<T> {
                             let Closed01(r0) = rand::random::<Closed01<f32>>();
                             if r0 < speculaty {
                                 // Specular sampling
-                                diffuse_bounce = false;
                                 let reflected_dir = reflect(&ray.direction, &normal);
                                 transport = transport.mul_element_wise(color);
                                 ray.reset(intersection_point, reflected_dir, f32::INFINITY);
@@ -354,17 +353,26 @@ impl<T: Primitive> Camera<T> {
                                     break;
                                 }
                                 // Diffuse sampling
-                                diffuse_bounce = true;
                                 let diffuse_dir = cosine_weighted_diffuse(&normal);
+                                ray.reset(intersection_point, diffuse_dir, f32::INFINITY);
                                 let cos_intersection = diffuse_dir.dot(normal);
                                 let brdf = f32::consts::FRAC_1_PI * color;
                                 let hemisphere_pdf = f32::consts::FRAC_1_PI * cos_intersection;
-                                transport = transport.mul_element_wise((cos_intersection / hemisphere_pdf) * brdf);
-                                ray.reset(intersection_point, diffuse_dir, f32::INFINITY);
+                                let light_pdf = {
+                                    let already_intersected = Some(self.scene.bvh.intersect_closest(ray));
+                                    if let Some(Some(Intersection{normal, inside:_, area, material: &Material::Emissive { color:_ }})) = already_intersected {
+                                        let cos_light = -normal.dot(ray.direction);
+                                        let solid_angle = (cos_light * area) / (ray.distance * ray.distance);
+                                        1.0 / solid_angle
+                                    } else {
+                                        0.0
+                                    }
+                                };
+                                let multiple_important_sampling_pdf = light_pdf + hemisphere_pdf;
+                                transport = transport.mul_element_wise((cos_intersection / multiple_important_sampling_pdf) * brdf);
                             }
                         }
                         &Material::Dielectric { refraction_index_n1, refraction_index_n2, color } => {
-                            diffuse_bounce = false;
                             if inside {
                                 let absorbance = (Vector3::new(-1.,-1.,-1.) + color) * ray.distance;
                                 let transparency = Vector3::new(absorbance.x.exp(), absorbance.y.exp(), absorbance.z.exp());

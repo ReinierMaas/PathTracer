@@ -1,10 +1,7 @@
-extern crate cgmath;
-
 use rand;
 use std::f32;
 use std::sync::Mutex;
 
-use cgmath::Point3;
 use primitive::Primitive;
 use primitive::aabb::AABB;
 

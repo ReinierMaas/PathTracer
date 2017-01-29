@@ -73,6 +73,7 @@ impl Primitive for Triangle {
         Some(Intersection{
             normal: ((1. - u - v) * self.normal0 + u * self.normal1 + v * self.normal2).normalize(),
             inside: a < 0.,
+            area: self.area(),
             material: &self.material,
         })
     }
@@ -97,8 +98,8 @@ impl Primitive for Triangle {
         let Open01(u) = rand::random::<Open01<f32>>(); // 0 < u < 1
         let Open01(v) = rand::random::<Open01<f32>>(); // 0 < v < 1
         let v = (1. - u) * v; //  0 < u + v < 1
-        let mut edge1 = self.position1 - self.position0;
-        let mut edge2 = self.position2 - self.position0;
+        let edge1 = self.position1 - self.position0;
+        let edge2 = self.position2 - self.position0;
         self.position0 + u * edge1 + v * edge2
     }
     fn area(&self) -> f32 {

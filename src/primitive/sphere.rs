@@ -58,6 +58,7 @@ impl Primitive for Sphere {
                 Some(Intersection{
                     normal: (ray.origin + ray.direction * t0 - self.position).normalize(),
                     inside:  false,
+                    area: self.area(),
                     material: &self.material,
                 })
             }
@@ -69,6 +70,7 @@ impl Primitive for Sphere {
                 Some(Intersection{
                     normal: (ray.origin + ray.direction * t1 - self.position).normalize(),
                     inside: true,
+                    area: self.area(),
                     material: &self.material,
                 })
             }

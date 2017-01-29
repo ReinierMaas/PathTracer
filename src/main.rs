@@ -29,7 +29,6 @@ mod mesh;
 
 use camera::Camera;
 use scene::Scene;
-use primitive::sphere::Sphere;
 use primitive::triangle::Triangle;
 
 //const WIDTH: usize = 800;

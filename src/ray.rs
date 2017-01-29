@@ -3,11 +3,11 @@ use self::cgmath::{Vector3, Point3};
 use std::f32;
 use material::Material;
 
-#[derive(Debug)]
-pub struct Intersection<'a> {
+pub struct Intersection<'m> {
     pub normal: Vector3<f32>,
     pub inside: bool,
-    pub material: &'a Material,
+    pub area: f32,
+    pub material: &'m Material,
 }
 
 #[derive(Debug)]
