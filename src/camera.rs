@@ -312,7 +312,7 @@ impl<T: Primitive> Camera<T> {
                         &Material::Diffuse { speculaty, color} => {
                             if inside { break };
                             if let Some((nr_ligths, random_light)) = self.scene.bvh.random_light() {
-                                let (point_on_light, area)= random_light.random_point();
+                                let point_on_light = random_light.random_point();
                                 let light_dir = (point_on_light - intersection_point).normalize();
                                 let mut god_ray = Ray::new(intersection_point + 20. * f32::EPSILON * light_dir, light_dir, f32::INFINITY);
                                 if let Some(intersection_on_light) = random_light.intersect(&mut god_ray) {
@@ -323,11 +323,12 @@ impl<T: Primitive> Camera<T> {
                                         god_ray.distance -= f32::EPSILON; // ray should not hit the light in the intersect_any test
                                         if let None = self.scene.bvh.intersect_any(&mut god_ray) {
                                             let brdf = f32::consts::FRAC_1_PI * color;
+                                            let area = random_light.area();
                                             let light_color = random_light.is_light().unwrap(); // we selected a light
                                             let solid_angle = (cos_light * area) / (god_ray.distance * god_ray.distance);
                                             let light_pdf = 1.0 / solid_angle;
                                             let hemisphere_pdf = f32::consts::FRAC_1_PI * cos_intersection;
-                                            multiple_important_sampling_pdf = light_pdf + hemisphere_pdf;
+                                            let multiple_important_sampling_pdf = light_pdf + hemisphere_pdf;
                                             // the estimated times this light gets sampled is 1 / nr_ligths, so we multiply this sample by nr_ligths
                                             let nee_estimate = nr_ligths as f32 * transport.mul_element_wise((cos_intersection / multiple_important_sampling_pdf) * light_color.mul_element_wise(brdf));
                                             accumalated_color += nee_estimate;

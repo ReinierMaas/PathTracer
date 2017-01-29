@@ -93,7 +93,7 @@ impl Primitive for Triangle {
             _ => None,
         }
     }
-    fn random_point(&self) -> (Point3<f32>, f32) {
+    fn random_point(&self) -> Point3<f32> {
         let Open01(u) = rand::random::<Open01<f32>>(); // 0 < u < 1
         let Open01(v) = rand::random::<Open01<f32>>(); // 0 < v < 1
         let v = (1. - u) * v; //  0 < u + v < 1

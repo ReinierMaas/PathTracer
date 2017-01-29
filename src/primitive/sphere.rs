@@ -93,7 +93,7 @@ impl Primitive for Sphere {
             _ => None,
         }
     }
-    fn random_point(&self) -> (Point3<f32>, f32) {
+    fn random_point(&self) -> Point3<f32> {
         use std::f32;
         use rand::distributions::*;
         let mut rng = rand::thread_rng();
@@ -112,10 +112,10 @@ impl Primitive for Sphere {
         let x = r * theta.sin() * phi.cos();
         let y = r * theta.sin() * phi.cos();
         let z = r * theta.cos();
-        Point3{x + self.position.x, y + self.position.y, z + self.position.z}
+        Point3::new(x + self.position.x, y + self.position.y, z + self.position.z)
     }
     fn area(&self) -> f32 {
-        f32::consts::PI * self.r * self.r
+        f32::consts::PI * self.radius * self.radius
     }
 }
 
