@@ -71,6 +71,19 @@ fn diffuse(normal: &Vector3<f32>) -> Vector3<f32> {
         diffuse_dir
     }
 }
+fn cosine_weighted_diffuse(normal: &Vector3<f32>) -> Vector3<f32> {
+    // Cosine weighted Diffuse
+    let Closed01(r0) = rand::random::<Closed01<f32>>();
+    let r = r0.sqrt();
+    let Closed01(r1) = rand::random::<Closed01<f32>>();
+    let phi = 2. * f32::consts::PI * r1;
+    from_tangent_to_local(normal, &Vector3::new(phi.cos() * r, phi.sin() * r, (1. - r0).sqrt()))
+}
+fn from_tangent_to_local(normal: &Vector3<f32>, tangent: &Vector3<f32>) -> Vector3<f32> {
+    let t = (normal.cross(if normal.x.abs() > 0.99 { Vector3::new(0.0,1.0,0.0) } else { Vector3::new(1.0,0.0,0.0) })).normalize();
+    let b = normal.cross(t);
+    tangent.x * t + tangent.y * b + tangent.z * normal
+}
 
 impl<T: Primitive> Camera<T> {
     pub fn new(width: usize, height: usize, scene: Scene<T>) -> Camera<T> {
@@ -286,7 +299,7 @@ impl<T: Primitive> Camera<T> {
         for _ in 0..depth {
             match self.scene.bvh.intersect_closest(ray) {
                 None => {
-                    accumalated_color += transport.mul_element_wise(0.1 * self.scene.sample_skybox(ray.direction));;
+                    accumalated_color += transport.mul_element_wise(0.01 * self.scene.sample_skybox(ray.direction));;
                     break;
                 },
                 Some(Intersection{normal, inside, material}) => {
@@ -338,10 +351,11 @@ impl<T: Primitive> Camera<T> {
                                 }
                                 // Diffuse sampling
                                 diffuse_bounce = true;
-                                let diffuse_dir = diffuse(&normal);
-                                let brdf = f32::consts::FRAC_1_PI * color;
+                                let diffuse_dir = cosine_weighted_diffuse(&normal);
                                 let cos_intersection = diffuse_dir.dot(normal);
-                                transport = transport.mul_element_wise(2.0 * f32::consts::PI * cos_intersection * brdf);
+                                let brdf = f32::consts::FRAC_1_PI * color;
+                                let pdf = f32::consts::FRAC_1_PI * cos_intersection;
+                                transport = transport.mul_element_wise(cos_intersection * brdf / pdf);
                                 ray.reset(intersection_point, diffuse_dir, f32::INFINITY);
                             }
                         }

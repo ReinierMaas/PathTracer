@@ -38,7 +38,7 @@ impl<T: Primitive> Scene<T> {
         let mut triangles = mesh::load_mesh(path, Material::Dielectric{
             refraction_index_n1: 1.0,
             refraction_index_n2: 1.5,
-            color: Vector3::new(0.9,0.8,0.7),
+            color: Vector3::new(0.01,0.9,0.01),
         });
 
         // Light
@@ -62,7 +62,7 @@ impl<T: Primitive> Scene<T> {
             normal1: Vector3::new(0.0,1.0,0.0),
             normal2: Vector3::new(0.0,1.0,0.0),
             material: Material::Diffuse {
-                speculaty: 0.5,
+                speculaty: 0.0,
                 color: Vector3::new(0.9,0.9,0.9),
             },
         });
@@ -74,7 +74,7 @@ impl<T: Primitive> Scene<T> {
             normal1: Vector3::new(0.0,1.0,0.0),
             normal2: Vector3::new(0.0,1.0,0.0),
             material: Material::Diffuse {
-                speculaty: 0.5,
+                speculaty: 0.0,
                 color: Vector3::new(0.9,0.9,0.9),
             },
         });

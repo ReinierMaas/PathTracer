@@ -157,7 +157,7 @@ fn main() {
                             for x in 0..WIDTH {
                                 let mut ray = camera.generate(x,y+start_y);
                                 let idx = x + y * WIDTH;
-                                chunk[idx] += camera.sample(&mut ray, 512);
+                                chunk[idx] += camera.sample(&mut ray, 32);
                                 let offset = y*pitch + x*3;
                                 let rgb = vec_to_rgb(scale*chunk[idx]);
                                 chunk2[offset + 0] = rgb.x;
