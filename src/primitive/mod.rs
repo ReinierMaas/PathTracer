@@ -14,5 +14,6 @@ pub trait Primitive {
     fn centre(&self) -> Point3<f32>;
     fn bounds(&self) -> AABB;
     fn is_light(&self) -> Option<Vector3<f32>>;
-    fn random_point(&self) -> (Point3<f32>, f32);
+    fn random_point(&self) -> Point3<f32>;
+    fn area(&self) -> f32;
 }

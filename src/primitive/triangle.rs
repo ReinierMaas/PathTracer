@@ -99,13 +99,16 @@ impl Primitive for Triangle {
         let v = (1. - u) * v; //  0 < u + v < 1
         let mut edge1 = self.position1 - self.position0;
         let mut edge2 = self.position2 - self.position0;
-        let point = self.position0 + u * edge1 + v* edge2;
+        self.position0 + u * edge1 + v * edge2
+    }
+    fn area(&self) -> f32 {
+        let mut edge1 = self.position1 - self.position0;
+        let mut edge2 = self.position2 - self.position0;
         let len1 = edge1.magnitude();
         let len2 = edge2.magnitude();
         edge1 /= len1;
         edge2 /= len2;
-        let area = 0.5 * (1.0 - edge1.dot(edge2)) * len1 * len2;
-        (point, area)
+        0.5 * (1.0 - edge1.dot(edge2)) * len1 * len2
     }
 }
 

@@ -326,8 +326,10 @@ impl<T: Primitive> Camera<T> {
                                             let light_color = random_light.is_light().unwrap(); // we selected a light
                                             let solid_angle = (cos_light * area) / (god_ray.distance * god_ray.distance);
                                             let light_pdf = 1.0 / solid_angle;
+                                            let hemisphere_pdf = f32::consts::FRAC_1_PI * cos_intersection;
+                                            multiple_important_sampling_pdf = light_pdf + hemisphere_pdf;
                                             // the estimated times this light gets sampled is 1 / nr_ligths, so we multiply this sample by nr_ligths
-                                            let nee_estimate = nr_ligths as f32 * transport.mul_element_wise((cos_intersection / light_pdf) * light_color.mul_element_wise(brdf));
+                                            let nee_estimate = nr_ligths as f32 * transport.mul_element_wise((cos_intersection / multiple_important_sampling_pdf) * light_color.mul_element_wise(brdf));
                                             accumalated_color += nee_estimate;
                                         }
                                     }

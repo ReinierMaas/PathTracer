@@ -106,16 +106,16 @@ impl Primitive for Sphere {
         let cos_theta = cos_theta_range.ind_sample(&mut rng);
         let u = u_range.ind_sample(&mut rng);
 
-
         let theta = cos_theta.acos();
 
         let r = self.radius * u.cbrt();
         let x = r * theta.sin() * phi.cos();
         let y = r * theta.sin() * phi.cos();
         let z = r * theta.cos();
-        (Point3{x:x+self.position.x,y:y+self.position.y,z:z+self.position.z}, f32::consts::PI*r*r)
-
-
+        Point3{x + self.position.x, y + self.position.y, z + self.position.z}
+    }
+    fn area(&self) -> f32 {
+        f32::consts::PI * self.r * self.r
     }
 }
 
