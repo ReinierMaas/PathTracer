@@ -1,0 +1,11 @@
+To build the project you need SDL:
+In SDL_FOR_WINDOWS folder explanation is placed to place sdl files in the right location.
+
+Next step is loading the models:
+Double-click on models.bat this will download them from github and place them in the models folder.
+
+Make sure you have the latest version of the rust compiler:
+rustup update
+
+Start compiling the project:
+cargo run --release
