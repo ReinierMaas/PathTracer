@@ -330,7 +330,7 @@ impl<T: Primitive> Camera<T> {
                                             let hemisphere_pdf = f32::consts::FRAC_1_PI * cos_intersection;
                                             let multiple_important_sampling_pdf = light_pdf + hemisphere_pdf;
                                             // the estimated times this light gets sampled is 1 / nr_ligths, so we multiply this sample by nr_ligths
-                                            let nee_estimate = nr_ligths as f32 * transport.mul_element_wise((cos_intersection / multiple_important_sampling_pdf) * light_color.mul_element_wise(brdf));
+                                            let nee_estimate = (1. - speculaty).min(0.0) * nr_ligths as f32 * transport.mul_element_wise((cos_intersection / multiple_important_sampling_pdf) * light_color.mul_element_wise(brdf));
                                             accumalated_color += nee_estimate;
                                         }
                                     }
