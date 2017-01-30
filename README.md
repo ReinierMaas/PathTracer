@@ -1,20 +1,20 @@
-# Advanced Graphics: Physically based rendering: Path Tracer in RUST
+# Advanced Graphics: Physically based rendering Path Tracer in RUST
 ## Arian van Putten $4133935$ and Reinier Maas $4131495$
 
 # Collaboration
 For the course `Concepts of Program Design` we, Arian van Putten and Reinier Maas, were in the same team.
 Although we were both working on different projects within this team.
-Arian was working on a path tracer in Rust, because this is a realworld use-case for `Fearless concurrency` a selling point of the language.
-Reinier was working together with Adolfo Ochagavía on implementing different backends for an exercise from `Concurrency`, to document these.
+Arian was working on a path tracer in Rust, because this is a realworld use-case for `Fearless concurrency` a selling point of the language we were studying.
+Reinier was working together with Adolfo Ochagavía on implementing different backends for an exercise `IBAN Calculator` from `Concurrency`, to document the different programming concepts.
 
 The third assignment for `Advanced Graphics` came up, implement a path tracer.
 Reinier decided to check with Wouter Swierstra and Jacco Bikker if we could work together on implementing the path tracer.
-Both because Reinier finds the language interesting and because he had done the past two assingments without a practicum partner.
-This was allowed with which Reinier is very pleased.
+Both because Reinier finds the language `Rust` interesting and because he had done the past two assingments without a practicum partner.
+We were allowed to hand in this project for both courses with which we are very pleased.
 
 Arian mainly focused on the `Fearless concurrency` part, thread scheduling without unsafe code to check how smart the compiler is.
-Reinier mainly focused on implementing `Variance reduction` strategies, these were explained during the lectures.
-Large parts are our combined effort.
+Reinier mainly focused on implementing `Variance reduction` strategies, these were explained during the `Advanced Graphics` lectures.
+Large parts of the project are our joined effort.
 
 # Implementation
 ## Parallelism
@@ -85,7 +85,9 @@ When using the cosine weighted diffuse reflection, the sample has a greater chan
 ## Next Event Estimation
 On each diffuse surface we directly sample a random point on a random light.
 This essentialy splits the direct and indirect illumination of the hemisphere.
-//todo: wastes direct light samples
+According to the used pdfs in next even estimation we have to discard all rays traveling from a diffuse bounce to a lightsource.
+The computation power spend on finding the intersection for these path segments is thus wasted.
+In order increase efficiency of the path segments we have implemented `Multiple Important Sampling`.
 
 ## Multiple Important Sampling
 The `Multiple Important Sampling`, `MIS`, is to overcome the waste of neglecting rays that hit the light after a diffuse bounce.
@@ -107,3 +109,11 @@ Rays with that transport more energy will survive longer.
 After a portion of the rays are killed we need to increase the energy returned by the rays that didn't get killed to compensate for killing the rays.
 We scale them up by dividing them by their survival rate.
 This way rays that survive bring back the energy that all rays would have returned together.
+
+# Screenshots
+![Glass cube caustics front](./Screenshots/Glass_Cube_Caustics_Front.png)
+Glass cube caustics front
+![Glass cube caustics top](./Screenshots/Glass_Cube_Caustics_Top.png)
+Glass cube caustics top
+![Glass dragon on diffuse surface](./Screenshots/Glass_Dragon_On_Diffuse_Surface.png)
+Glass dragon on diffuse surface

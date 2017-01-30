@@ -1,0 +1,2 @@
+Paste all files from SDL2-2.0.5\lib\{toolchain_bits - x64 / x86 } in lib folder:
+C:\Users\{users}\.rustup\toolchains\{toolchain}\lib\rustlib\{toolchain}\lib
