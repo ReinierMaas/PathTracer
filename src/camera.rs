@@ -299,7 +299,7 @@ impl<T: Primitive> Camera<T> {
         for _ in 0..depth {
             match if let Some(intersection) = already_intersected { already_intersected = None; intersection } else { self.scene.bvh.intersect_closest(ray) } {
                 None => {
-                    accumalated_color += transport.mul_element_wise(0.01 * self.scene.sample_skybox(ray.direction));;
+                    accumalated_color += transport.mul_element_wise(0.1 * self.scene.sample_skybox(ray.direction));;
                     break;
                 },
                 Some(Intersection{normal, inside, area:_, material}) => {

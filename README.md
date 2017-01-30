@@ -69,14 +69,36 @@ The SAH is calculated for both sides of a split-plane and adding the estimates t
 Eventually the lowest estimated value is selected if it is lower then the SAH of the parent node.
 This happens recursively for each node until there are no primitives to split-up, or the SAH estimates it is cheaper to leave the node alone.
 
-## Compiler checked code
+## Gamma Correction
+Gamma correction of the luminance of the rendered image is needed because classic CRTs didn't display the luminance linear.
+In order to display the images correctly we applied gamma correction before sending the texture to the screen.
+Current hardware doesn't need the image in a gamma corrected format but because of backwards commpatibility all hardware automatically translates frames back to linear luminance.
+
+## Depth Of Field
+Depth of field is hard to get realistic in rasterizers but with path tracing it becomes a simple addon.
+A pinhole camera shoots rays from a pinpoint, the origin of the camera to a screenplane in front of this pinhole.
+Upgrading this pinhole camera to a camera with an aperture and a focal plane is trivial.
+Generate a circle on the location of the origin with a radius perpendicular to the view direction.
+From this lens element we shoot rays towards our screenplane that is now located on our focal plane.
+
+## Anti-aliasing
+Anti-aliasing is used to diminish the jaggedness of the image.
+By taking a random location around the location of the pixel on the focus plane we achieved this result.
+This is added to the poisson process and only slightly impacts performance because there is only one sample per frame.
+
+## Skybox
+A skybox is used to generate nicer images.
+All rays missing all the primitives sample the skybox to increasee the amount of light in the scene.
+This generates a quicker convering image because there is more light then just the emitting surfaces.
+
+## Compiler Checked Code
 For Arians research it was important that the compiler gave us precise error messages.
 For the compiler to give precise error messages we had to use as little unsafe as possible.
 Unsafe code is not checked by the compiler and can do anything arbitrary, like introducing undefined behaviour.
 In our code we only have _one_ line of unsafe code.
 This specific line reads bytes from disk and transmutes them into floats for our skybox.
 
-# Variance reduction
+# Variance Reduction
 ## Important Sampling
 Light on a diffuse surface gets reflected more if it arrives from the normal.
 The random samples on a diffuse surface have an average chance of being sampled so the pdf is $1 / 2 \pi$.
@@ -99,6 +121,12 @@ By combining the hemisphere pdf with the light pdf when doing the `Next Event Es
 Because the `NEE` is scaled down we don't have to discard the rays that hit a lightsource after a diffuse bounce.
 This reduces the overall variance.
 
+## Many Lights
+Many Lights estimates all lightsources by randomly sampling one lightsource.
+The light recieved from this single lightsource is divided by the chance that the lightsource got sampled.
+This way we added another Monte Carlo Intergral to our path tracer making generating of frames faster.
+Eventually all lightsources will be sampled and the image converges to the correct solution.
+
 ## Russian Roulette
 `Russian Roulette` comes into play when doing multiple bounces.
 Each consecutive bounce reduces the transport of the ray.
@@ -113,7 +141,12 @@ This way rays that survive bring back the energy that all rays would have return
 # Screenshots
 ![Glass cube caustics front](./Screenshots/Glass_Cube_Caustics_Front.png)
 Glass cube caustics front
+
 ![Glass cube caustics top](./Screenshots/Glass_Cube_Caustics_Top.png)
 Glass cube caustics top
-![Glass dragon on diffuse surface](./Screenshots/Glass_Dragon_On_Diffuse_Surface.png)
+
+![Green glass dragon on diffuse surface](./Screenshots/Glass_Dragon_On_Diffuse_Surface.png)
 Glass dragon on diffuse surface
+
+![Blue glass Buddha on semi specular surface](./Screenshots/Glass_Buddha_On_Semi_Specular_Surface.png)
+Blue glass Buddha on semi specular surface

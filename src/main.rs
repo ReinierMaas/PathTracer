@@ -103,8 +103,8 @@ fn main() {
 
     //let scene = Scene::<Sphere>::default_scene().expect("scene");
     //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/cube.obj")).expect("scene");
-    let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/dragon.obj")).expect("scene");
-    //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/buddha.obj")).expect("scene");
+    //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/dragon.obj")).expect("scene");
+    let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/buddha.obj")).expect("scene");
     //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/rungholt.obj")).expect("scene");
     //let scene = Scene::<Triangle>::scene(&std::path::Path::new("./models/powerplant.obj")).expect("scene");
     let mut camera = Camera::new(WIDTH, HEIGHT, scene);
