@@ -88,7 +88,17 @@ When using the cosine weighted diffuse reflection, the sample has a greater chan
 
 ### Next Event Estimation
 On each diffuse surface we directly sample a random point on a random light.
-Splits the direct and indirect illumination.
+This essentialy splits the direct and indirect illumination parts of the hemisphere on the location of the hit.
+
+### Multiple Important Sampling
+To overcome the waste of neglecting rays that hit the light after a diffuse bounce.
+We implemented Multiplle Important Sampling which works by taking both the light pdf and the hemisphere pdf.
+The light pdf is only greater then `zero` on the parts were an light is actually hit.
+Therefore the light pdf is calculated when hitting a lightsource.
+The hemisphere pdf can be calculated based on the direction of the light sample.
+By combining the hemisphere pdf with the light pdf when doing the `Next Event Estimation` this estimation is scaled down.
+Because the `NEE` is scaled down we don't have to discard the rays that hit a lightsource after a diffuse bounce.
+This reduces variance overall.
 
 ### Russian Roulette
 If we are at a diffuse surface and we would do a diffuse bounce.
