@@ -1,13 +1,10 @@
 use rand;
 use std::f32;
-use std::sync::Mutex;
 
 use primitive::Primitive;
 use primitive::aabb::AABB;
 
 use ray::{Ray,Intersection};
-
-thread_local!(static NODE_STACK: Mutex<Vec<usize>> = Mutex::new(Vec::new()));
 
 #[derive(Debug)]
 struct BVHNode {
@@ -53,12 +50,13 @@ impl<T: Primitive> BVH<T> {
         bvh
     }
     fn subdivide(&mut self) {
-        NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(0)); // root node
-        while let Some(node_index) = NODE_STACK.with(|node_stack|node_stack.lock().unwrap().pop()) {
+        let mut node_stack = vec![];
+        node_stack.push(0); // root node
+        while let Some(node_index) = node_stack.pop() {
             if self.bvh_nodes[node_index].count > 2 && self.partition(node_index) {
                 let left = self.bvh_nodes[node_index].left_first as usize;
-                NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left + 1));
-                NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left));
+                node_stack.push(left + 1);
+                node_stack.push(left);
             }
         }
     }
@@ -180,9 +178,20 @@ impl<T: Primitive> BVH<T> {
         //(axis, pivot)
     }
     pub fn intersect_closest(&self, ray: &mut Ray) -> Option<Intersection> {
+        /*
+        //brute force
         let mut closest_intersection = None;
-        NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(0)); // root node
-        while let Some(node_index) = NODE_STACK.with(|node_stack|node_stack.lock().unwrap().pop()) {
+        for object in &self.objects {
+            if let Some(intersection) = object.intersect(ray) {
+                closest_intersection = Some(intersection);
+            }
+        }
+        closest_intersection
+        */
+        let mut closest_intersection = None;
+        let mut node_stack = vec![];
+        node_stack.push(0); // root node
+        while let Some(node_index) = node_stack.pop() {
             let node = &self.bvh_nodes[node_index];
             if let Some(_) = node.bounds.intersect(ray) { // prune stack pops that don't get intersected anymore
                 if node.count != 0 {
@@ -200,14 +209,14 @@ impl<T: Primitive> BVH<T> {
                     let tr = self.bvh_nodes[left + 1].bounds.intersect(ray);
                     match (tl,tr) {
                         (Some((tlmin, _)), Some((trmin, _))) => if tlmin <= trmin { // push happens in the reverse order LIFO
-                                    NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left + 1));
-                                    NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left));
+                                    node_stack.push(left + 1);
+                                    node_stack.push(left);
                                 } else {
-                                    NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left));
-                                    NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left + 1));
+                                    node_stack.push(left);
+                                    node_stack.push(left + 1);
                             },
-                        (Some(_), None) => NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left)),
-                        (None, Some(_)) => NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left + 1)),
+                        (Some(_), None) => node_stack.push(left),
+                        (None, Some(_)) => node_stack.push(left + 1),
                         (None, None) => {},
                     }
                 }
@@ -216,8 +225,18 @@ impl<T: Primitive> BVH<T> {
         closest_intersection
     }
     pub fn intersect_any(&self, ray: &mut Ray) -> Option<Intersection> {
-        NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(0)); // root node
-        while let Some(node_index) = NODE_STACK.with(|node_stack|node_stack.lock().unwrap().pop()) {
+        /*
+        //brute force
+        for object in &self.objects {
+            if let Some(intersection) = object.intersect(ray) {
+                return Some(intersection);
+            }
+        }
+        None
+        */
+        let mut node_stack = vec![];
+        node_stack.push(0); // root node
+        while let Some(node_index) = node_stack.pop() {
             let node = &self.bvh_nodes[node_index];
             if let Some(_) = node.bounds.intersect(ray) { // prune stack pops that don't get intersected anymore
                 if node.count != 0 {
@@ -235,14 +254,14 @@ impl<T: Primitive> BVH<T> {
                     let tr = self.bvh_nodes[left + 1].bounds.intersect(ray);
                     match (tl,tr) {
                         (Some((tlmin, _)), Some((trmin, _))) => if tlmin <= trmin { // push happens in the reverse order LIFO
-                                    NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left + 1));
-                                    NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left));
+                                    node_stack.push(left + 1);
+                                    node_stack.push(left);
                                 } else {
-                                    NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left));
-                                    NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left + 1));
+                                    node_stack.push(left);
+                                    node_stack.push(left + 1);
                             },
-                        (Some(_), None) => NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left)),
-                        (None, Some(_)) => NODE_STACK.with(|node_stack|node_stack.lock().unwrap().push(left + 1)),
+                        (Some(_), None) => node_stack.push(left),
+                        (None, Some(_)) => node_stack.push(left + 1),
                         (None, None) => {},
                     }
                 }
